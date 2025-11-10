@@ -1,7 +1,4 @@
---[[
-	New Dex
-	Final Version
-	Developed by Moon
+--[[Developed by Leliks Team
 	
 	Dex is a debugging suite designed to help the user debug games and find any potential vulnerabilities.
 	
