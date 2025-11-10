@@ -1,5 +1,5 @@
 --// Leliks Script 
---// GUI v2.7 | Script v3.0
+--// GUI v2.8 | Script v3.1
 --// Script for Ink Game
 --// Scripted by Leliks
 
@@ -70,7 +70,7 @@ title.TextXAlignment = Enum.TextXAlignment.Center
 local subTitle = Instance.new("TextLabel", mainFrame)
 subTitle.Size = UDim2.new(1,0,0,20)
 subTitle.Position = UDim2.new(0,0,0,40)
-subTitle.Text = "GUI v2.7 | Script v3.0"
+subTitle.Text = "GUI v2.8 | Script v3.1"
 subTitle.Font = Enum.Font.SourceSans
 subTitle.TextSize = 14
 subTitle.BackgroundTransparency = 1
@@ -352,6 +352,148 @@ vipBtn.MouseButton1Click:Connect(function()
         player:SetAttribute("__OwnsVIPGamepass", false)
         vipBtn.Text = "VIP: OFF"
     end
+end)
+
+-- CANDY ESP BUTTON (Random Features Section)
+local candyESPEnabled = false
+local candyESPBtn = Instance.new("TextButton", randomScroll)
+candyESPBtn.Size = UDim2.new(1, -10, 0, 30)
+candyESPBtn.Position = UDim2.new(0, 5, 0, 420)
+candyESPBtn.Text = "Candy ESP: OFF"
+candyESPBtn.Font = Enum.Font.SourceSansBold
+candyESPBtn.TextSize = 18
+candyESPBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+candyESPBtn.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", candyESPBtn).CornerRadius = UDim.new(0, 6)
+
+-- Store active ESPs
+local activeCandyESP = {}
+
+-- Create ESP above a model
+local function createCandyESP(model)
+	if not model or model:FindFirstChild("CandyESP") then return end
+
+	-- Find a part inside the model to attach ESP
+	local part = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+	if not part then return end
+
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "CandyESP"
+	billboard.AlwaysOnTop = true
+	billboard.Size = UDim2.new(0, 100, 0, 25)
+	billboard.StudsOffset = Vector3.new(0, 2, 0)
+	billboard.Adornee = part
+	billboard.Parent = model
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, 0, 1, 0)
+	label.BackgroundTransparency = 1
+	label.Text = "🍬 Candy"
+	label.TextColor3 = Color3.fromRGB(255, 128, 0)
+	label.TextStrokeTransparency = 0
+	label.Font = Enum.Font.SourceSansBold
+	label.TextScaled = true
+	label.Parent = billboard
+
+	table.insert(activeCandyESP, billboard)
+end
+
+-- Remove all candy ESPs
+local function clearCandyESP()
+	for _, esp in ipairs(activeCandyESP) do
+		if esp and esp.Parent then
+			esp:Destroy()
+		end
+	end
+	activeCandyESP = {}
+end
+
+-- Scan workspace.Effects for Candy models
+local function scanCandies()
+	if not workspace:FindFirstChild("Effects") then return end
+	for _, obj in ipairs(workspace.Effects:GetDescendants()) do
+		if obj:IsA("Model") and (obj.Name == "Candy1" or obj.Name == "Candy2" or obj.Name == "Candy3" or obj.Name == "Candy4") then
+			createCandyESP(obj)
+		end
+	end
+end
+
+-- Toggle button
+candyESPBtn.MouseButton1Click:Connect(function()
+	candyESPEnabled = not candyESPEnabled
+	if candyESPEnabled then
+		candyESPBtn.Text = "Candy ESP: ON"
+		task.spawn(function()
+			while candyESPEnabled do
+				clearCandyESP()
+				scanCandies()
+				task.wait(1) -- refresh every second
+			end
+		end)
+	else
+		candyESPBtn.Text = "Candy ESP: OFF"
+		clearCandyESP()
+	end
+end)
+
+
+-- Speed Controller
+local speedLabel = Instance.new("TextLabel", randomScroll)
+speedLabel.Size = UDim2.new(1,-10,0,25)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Font = Enum.Font.SourceSansBold
+speedLabel.TextSize = 20
+speedLabel.TextColor3 = Color3.new(1,1,1)
+speedLabel.TextXAlignment = Enum.TextXAlignment.Left
+speedLabel.Text = "Custom Speed"
+
+local speedFrame = Instance.new("Frame", randomScroll)
+speedFrame.Size = UDim2.new(1,-10,0,30)
+speedFrame.BackgroundTransparency = 1
+
+local speedBox = Instance.new("TextBox", speedFrame)
+speedBox.Size = UDim2.new(0.7, -5, 1, 0)
+speedBox.Position = UDim2.new(0, 0, 0, 0)
+speedBox.PlaceholderText = "Enter Speed (1-100)"
+speedBox.Text = ""
+speedBox.TextColor3 = Color3.new(1,1,1)
+speedBox.BackgroundColor3 = Color3.fromRGB(60,60,60)
+Instance.new("UICorner", speedBox).CornerRadius = UDim.new(0,6)
+
+local setSpeedBtn = Instance.new("TextButton", speedFrame)
+setSpeedBtn.Size = UDim2.new(0.3, -5, 1, 0)
+setSpeedBtn.Position = UDim2.new(0.7, 5, 0, 0)
+setSpeedBtn.Text = "Set"
+setSpeedBtn.BackgroundColor3 = Color3.fromRGB(80,80,80)
+setSpeedBtn.TextColor3 = Color3.new(1,1,1)
+setSpeedBtn.Font = Enum.Font.SourceSansBold
+setSpeedBtn.TextSize = 18
+Instance.new("UICorner", setSpeedBtn).CornerRadius = UDim.new(0,6)
+
+local speedLoop
+
+setSpeedBtn.MouseButton1Click:Connect(function()
+	local value = tonumber(speedBox.Text)
+	if value and value >= 1 and value <= 100 then
+		if speedLoop then
+			task.cancel(speedLoop)
+		end
+		speedLoop = task.spawn(function()
+			while true do
+				if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
+					player.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = value
+				end
+				task.wait(0.5)
+			end
+		end)
+		setSpeedBtn.Text = "Set!"
+		task.wait(1)
+		setSpeedBtn.Text = "Set"
+	else
+		setSpeedBtn.Text = "Invalid"
+		task.wait(1)
+		setSpeedBtn.Text = "Set"
+	end
 end)
 
 
@@ -770,6 +912,107 @@ exitEspBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
+-- Blocked Exits ESP
+local blockedEspBtn = createButton(scroll,"Blocked Exits ESP: OFF")
+local blockedEspOn = false
+
+blockedEspBtn.MouseButton1Click:Connect(function()
+	blockedEspOn = not blockedEspOn
+	blockedEspBtn.Text = blockedEspOn and "Blocked Exits ESP: ON" or "Blocked Exits ESP: OFF"
+
+	for _, obj in pairs(workspace:GetDescendants()) do
+		if obj:IsA("BasePart") and obj.Name == "DoorsIsBlocked" then
+			if obj:FindFirstChild("BlockedESP") then
+				obj.BlockedESP:Destroy()
+			end
+			if blockedEspOn then
+				local gui = Instance.new("BillboardGui", obj)
+				gui.Name = "BlockedESP"
+				gui.Adornee = obj
+				gui.Size = UDim2.new(0,200,0,50)
+				gui.AlwaysOnTop = true
+				local lbl = Instance.new("TextLabel", gui)
+				lbl.Size = UDim2.new(1,0,1,0)
+				lbl.BackgroundTransparency = 1
+				lbl.Font = Enum.Font.SourceSansBold
+				lbl.Text = "Blocked Exit Door"
+				lbl.TextColor3 = Color3.new(0,0,0)
+				lbl.TextScaled = true
+			end
+		end
+	end
+end)
+
+-- KEY ESP BUTTON (Hide and Seek Section)
+local keyESPEnabled = false
+local keyESPBtn = Instance.new("TextButton", gamesScroll)
+keyESPBtn.Size = UDim2.new(1, -10, 0, 30)
+keyESPBtn.Position = UDim2.new(0, 5, 0, 240) -- diğer butonlara göre ayarlayabilirsin
+keyESPBtn.Text = "Key ESP: OFF"
+keyESPBtn.Font = Enum.Font.SourceSansBold
+keyESPBtn.TextSize = 18
+keyESPBtn.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", keyESPBtn).CornerRadius = UDim.new(0, 6)
+
+-- Store active ESPs
+local activeKeyESP = {}
+
+-- Function to add ESP
+local function addESP(part)
+	if not part or not part:IsA("BasePart") then return end
+	local billboard = Instance.new("BillboardGui", part)
+	billboard.Name = "KeyESP"
+	billboard.Size = UDim2.new(0, 100, 0, 25)
+	billboard.AlwaysOnTop = true
+	billboard.StudsOffset = Vector3.new(0, 2, 0)
+
+	local label = Instance.new("TextLabel", billboard)
+	label.Size = UDim2.new(1, 0, 1, 0)
+	label.BackgroundTransparency = 1
+	label.Text = "KEY"
+	label.TextColor3 = Color3.fromRGB(255, 140, 0) -- Orange
+	label.TextStrokeTransparency = 0
+	label.Font = Enum.Font.SourceSansBold
+	label.TextScaled = true
+
+	table.insert(activeKeyESP, billboard)
+end
+
+-- Function to clear ESPs
+local function clearKeyESP()
+	for _, esp in ipairs(activeKeyESP) do
+		if esp and esp.Parent then
+			esp:Destroy()
+		end
+	end
+	activeKeyESP = {}
+end
+
+-- Toggle Key ESP
+keyESPBtn.MouseButton1Click:Connect(function()
+	keyESPEnabled = not keyESPEnabled
+	if keyESPEnabled then
+		keyESPBtn.Text = "Key ESP: ON"
+		task.spawn(function()
+			while keyESPEnabled do
+				clearKeyESP()
+				local effects = workspace:FindFirstChild("Effects")
+				if effects then
+					for _, obj in ipairs(effects:GetChildren()) do
+						if obj:IsA("BasePart") and (obj.Name == "DroppedKeyTriangle" or obj.Name == "DroppedKeyCircle" or obj.Name == "DroppedKeySquare") then
+							addESP(obj)
+						end
+					end
+				end
+				task.wait(1)
+			end
+		end)
+	else
+		keyESPBtn.Text = "Key ESP: OFF"
+		clearKeyESP()
+	end
+end)
+
 
 -- Jump Rope 
 local jrHeader = Instance.new("TextLabel", gamesScroll)
@@ -917,7 +1160,7 @@ local set1Btn = createButton(settingsScroll, "Change Theme")
 local themeColors = {
     Color3.fromRGB(135, 206, 235), -- Gök mavisi
     Color3.fromRGB(255, 105, 180), -- Pembe
-    Color3.fromRGB(0, 0, 0),       -- Siyah
+    Color3.fromRBG(255, 0, 0), -- Kırmızı
     Color3.fromRGB(20, 20, 20)     -- Orijinal renk
 }
 
@@ -935,3 +1178,6 @@ set1Btn.MouseButton1Click:Connect(function()
     -- set color
     mainFrame.BackgroundColor3 = themeColors[currentTheme]
 end)
+
+print("Leliks Script Loaded")
+
