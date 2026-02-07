@@ -1,0 +1,781 @@
+-- Leliks Rivals Script v1.0.7
+-- Modern GUI for Roblox Rivals
+-- Z key = Toggle GUI, L key = Toggle Aimbot
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Create ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local UICorner = Instance.new("UICorner")
+local TitleLabel = Instance.new("TextLabel")
+local VersionLabel = Instance.new("TextLabel")
+
+-- Sidebar
+local Sidebar = Instance.new("Frame")
+local SidebarCorner = Instance.new("UICorner")
+local SidebarList = Instance.new("UIListLayout")
+
+-- Content Frame
+local ContentFrame = Instance.new("Frame")
+local ContentCorner = Instance.new("UICorner")
+
+-- ScreenGui Settings
+ScreenGui.Name = "LeliksRivalsGUI"
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.ResetOnSpawn = false
+
+-- Main Frame
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0.5, -400, 0.5, -225)
+MainFrame.Size = UDim2.new(0, 800, 0, 450)
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Visible = true
+
+UICorner.CornerRadius = UDim.new(0, 12)
+UICorner.Parent = MainFrame
+
+-- Title
+TitleLabel.Name = "TitleLabel"
+TitleLabel.Parent = MainFrame
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Position = UDim2.new(0, 0, 0, 10)
+TitleLabel.Size = UDim2.new(1, 0, 0, 40)
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.Text = "Leliks Rivals Script"
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.TextSize = 26
+
+-- Version Label
+VersionLabel.Name = "VersionLabel"
+VersionLabel.Parent = MainFrame
+VersionLabel.BackgroundTransparency = 1
+VersionLabel.Position = UDim2.new(1, -80, 1, -30)
+VersionLabel.Size = UDim2.new(0, 70, 0, 20)
+VersionLabel.Font = Enum.Font.GothamBold
+VersionLabel.Text = "v1.0.7"
+VersionLabel.TextColor3 = Color3.fromRGB(100, 100, 100)
+VersionLabel.TextSize = 14
+VersionLabel.TextXAlignment = Enum.TextXAlignment.Right
+
+-- Sidebar
+Sidebar.Name = "Sidebar"
+Sidebar.Parent = MainFrame
+Sidebar.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+Sidebar.Position = UDim2.new(0, 10, 0, 60)
+Sidebar.Size = UDim2.new(0, 180, 1, -100)
+Sidebar.BorderSizePixel = 0
+
+SidebarCorner.CornerRadius = UDim.new(0, 10)
+SidebarCorner.Parent = Sidebar
+
+SidebarList.Parent = Sidebar
+SidebarList.SortOrder = Enum.SortOrder.LayoutOrder
+SidebarList.Padding = UDim.new(0, 8)
+SidebarList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+-- Content Frame
+ContentFrame.Name = "ContentFrame"
+ContentFrame.Parent = MainFrame
+ContentFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+ContentFrame.Position = UDim2.new(0, 200, 0, 60)
+ContentFrame.Size = UDim2.new(1, -230, 1, -100)
+ContentFrame.BorderSizePixel = 0
+
+ContentCorner.CornerRadius = UDim.new(0, 10)
+ContentCorner.Parent = ContentFrame
+
+-- Close Button
+local CloseButton = Instance.new("TextButton")
+local CloseCorner = Instance.new("UICorner")
+
+CloseButton.Name = "CloseButton"
+CloseButton.Parent = MainFrame
+CloseButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+CloseButton.Position = UDim2.new(1, -45, 0, 15)
+CloseButton.Size = UDim2.new(0, 35, 0, 35)
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.TextSize = 20
+CloseButton.BorderSizePixel = 0
+
+CloseCorner.CornerRadius = UDim.new(0, 8)
+CloseCorner.Parent = CloseButton
+
+CloseButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+end)
+
+-- Tab Button Creation Function
+local currentTab = nil
+
+local function CreateTabButton(name, text, order)
+    local Button = Instance.new("TextButton")
+    local ButtonCorner = Instance.new("UICorner")
+    
+    Button.Name = name
+    Button.Parent = Sidebar
+    Button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    Button.Size = UDim2.new(0, 160, 0, 45)
+    Button.Font = Enum.Font.GothamBold
+    Button.Text = text
+    Button.TextColor3 = Color3.fromRGB(200, 200, 200)
+    Button.TextSize = 16
+    Button.AutoButtonColor = false
+    Button.BorderSizePixel = 0
+    Button.LayoutOrder = order
+    
+    ButtonCorner.CornerRadius = UDim.new(0, 8)
+    ButtonCorner.Parent = Button
+    
+    Button.MouseEnter:Connect(function()
+        if currentTab ~= name then
+            Button.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+        end
+    end)
+    
+    Button.MouseLeave:Connect(function()
+        if currentTab ~= name then
+            Button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        end
+    end)
+    
+    return Button
+end
+
+-- Feature Button Creation Function
+local function CreateFeatureButton(parent, name, text, callback)
+    local Button = Instance.new("TextButton")
+    local ButtonCorner = Instance.new("UICorner")
+    local ButtonStroke = Instance.new("UIStroke")
+    
+    Button.Name = name
+    Button.Parent = parent
+    Button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    Button.Size = UDim2.new(1, 0, 0, 45)
+    Button.Font = Enum.Font.GothamBold
+    Button.Text = text
+    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Button.TextSize = 16
+    Button.AutoButtonColor = false
+    Button.BorderSizePixel = 0
+    
+    ButtonCorner.CornerRadius = UDim.new(0, 8)
+    ButtonCorner.Parent = Button
+    
+    ButtonStroke.Color = Color3.fromRGB(70, 130, 255)
+    ButtonStroke.Thickness = 2
+    ButtonStroke.Parent = Button
+    
+    Button.MouseEnter:Connect(function()
+        Button.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    end)
+    
+    Button.MouseLeave:Connect(function()
+        Button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    end)
+    
+    Button.MouseButton1Click:Connect(callback)
+    
+    return Button
+end
+
+-- Create Tab Frames
+local UpdatesFrame = Instance.new("ScrollingFrame")
+UpdatesFrame.Name = "UpdatesFrame"
+UpdatesFrame.Parent = ContentFrame
+UpdatesFrame.BackgroundTransparency = 1
+UpdatesFrame.Position = UDim2.new(0, 10, 0, 10)
+UpdatesFrame.Size = UDim2.new(1, -20, 1, -20)
+UpdatesFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+UpdatesFrame.ScrollBarThickness = 6
+UpdatesFrame.ScrollBarImageColor3 = Color3.fromRGB(70, 130, 255)
+UpdatesFrame.BorderSizePixel = 0
+UpdatesFrame.Visible = false
+
+local FeaturesFrame = Instance.new("ScrollingFrame")
+FeaturesFrame.Name = "FeaturesFrame"
+FeaturesFrame.Parent = ContentFrame
+FeaturesFrame.BackgroundTransparency = 1
+FeaturesFrame.Position = UDim2.new(0, 10, 0, 10)
+FeaturesFrame.Size = UDim2.new(1, -20, 1, -20)
+FeaturesFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+FeaturesFrame.ScrollBarThickness = 6
+FeaturesFrame.ScrollBarImageColor3 = Color3.fromRGB(70, 130, 255)
+FeaturesFrame.BorderSizePixel = 0
+FeaturesFrame.Visible = false
+
+local UpdatesList = Instance.new("UIListLayout")
+UpdatesList.Parent = UpdatesFrame
+UpdatesList.SortOrder = Enum.SortOrder.LayoutOrder
+UpdatesList.Padding = UDim.new(0, 10)
+
+local FeaturesList = Instance.new("UIListLayout")
+FeaturesList.Parent = FeaturesFrame
+FeaturesList.SortOrder = Enum.SortOrder.LayoutOrder
+FeaturesList.Padding = UDim.new(0, 10)
+
+-- Tab Switching Function
+local function SwitchTab(tabName)
+    currentTab = tabName
+    
+    -- Hide all frames
+    UpdatesFrame.Visible = false
+    FeaturesFrame.Visible = false
+    
+    -- Update all tab buttons
+    for _, child in pairs(Sidebar:GetChildren()) do
+        if child:IsA("TextButton") then
+            if child.Name == tabName then
+                child.BackgroundColor3 = Color3.fromRGB(70, 130, 255)
+                child.TextColor3 = Color3.fromRGB(255, 255, 255)
+            else
+                child.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+                child.TextColor3 = Color3.fromRGB(200, 200, 200)
+            end
+        end
+    end
+    
+    -- Show selected frame
+    if tabName == "UpdatesTab" then
+        UpdatesFrame.Visible = true
+    elseif tabName == "FeaturesTab" then
+        FeaturesFrame.Visible = true
+    end
+end
+
+-- Create Tab Buttons
+local UpdatesTab = CreateTabButton("UpdatesTab", "Updates", 1)
+local FeaturesTab = CreateTabButton("FeaturesTab", "Features", 2)
+
+UpdatesTab.MouseButton1Click:Connect(function()
+    SwitchTab("UpdatesTab")
+end)
+
+FeaturesTab.MouseButton1Click:Connect(function()
+    SwitchTab("FeaturesTab")
+end)
+
+-- Create Updates Content
+local function CreateUpdateText(text, order)
+    local Label = Instance.new("TextLabel")
+    Label.Parent = UpdatesFrame
+    Label.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    Label.Size = UDim2.new(1, 0, 0, 0)
+    Label.Font = Enum.Font.Gotham
+    Label.Text = text
+    Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Label.TextSize = 14
+    Label.TextWrapped = true
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.TextYAlignment = Enum.TextYAlignment.Top
+    Label.BorderSizePixel = 0
+    Label.LayoutOrder = order
+    Label.AutomaticSize = Enum.AutomaticSize.Y
+    
+    local Padding = Instance.new("UIPadding")
+    Padding.Parent = Label
+    Padding.PaddingLeft = UDim.new(0, 10)
+    Padding.PaddingRight = UDim.new(0, 10)
+    Padding.PaddingTop = UDim.new(0, 10)
+    Padding.PaddingBottom = UDim.new(0, 10)
+    
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 8)
+    Corner.Parent = Label
+    
+    return Label
+end
+
+CreateUpdateText("✅ ALL FEATURES:\n\n• ESP - See all players through walls\n• Aimbot - Auto-aim to closest player (L key)\n• Speed Boost - Move faster\n• Infinite Jump - Jump infinitely\n• No Recoil - Remove weapon recoil\n• Wallhack - See through walls\n• Silent Aim - Hidden aimbot\n• Auto Headshot - Always aim for head\n• Fly - Fly around the map\n• Instant Respawn - Respawn immediately\n• Teleport to Enemy - TP to nearest enemy\n• Anti-Kick - Prevent kicks", 1)
+
+CreateUpdateText("🆕 LATEST UPDATES (v1.0.7):\n\n• New modern tabbed interface\n• Auto-refreshing ESP (updates every 5 seconds)\n• Smooth ESP transitions\n• L key for Aimbot toggle\n• Z key for GUI toggle\n• Improved performance\n• Better UI design\n• Fixed fly mode persistence", 2)
+
+-- Variables
+local ESPEnabled = false
+local ESPConnections = {}
+local ESPRefreshConnection = nil
+local AimbotEnabled = false
+local AimbotConnection = nil
+local SpeedEnabled = false
+local OriginalSpeed = 16
+local InfiniteJumpEnabled = false
+local JumpConnection = nil
+local NoRecoilEnabled = false
+local WallhackEnabled = false
+local SilentAimEnabled = false
+local AutoHeadshotEnabled = false
+local FlyEnabled = false
+local FlyConnection = nil
+local AntiKickEnabled = false
+
+-- Team Check Function
+local function IsEnemy(player)
+    if not player or player == LocalPlayer then 
+        return false 
+    end
+    
+    if LocalPlayer.Team and player.Team then
+        return LocalPlayer.Team ~= player.Team
+    end
+    
+    return true
+end
+
+-- AUTO-REFRESHING ESP (every 5 seconds, smooth)
+local function CreateESP(player)
+    if player == LocalPlayer then return end
+    
+    spawn(function()
+        while ESPEnabled and player do
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local char = player.Character
+                local highlight = char:FindFirstChild("ESPHighlight")
+                
+                if IsEnemy(player) then
+                    if not highlight then
+                        highlight = Instance.new("Highlight")
+                        highlight.Name = "ESPHighlight"
+                        highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                        highlight.FillTransparency = 0.5
+                        highlight.OutlineTransparency = 0
+                        highlight.Parent = char
+                    else
+                        highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                    end
+                else
+                    if not highlight then
+                        highlight = Instance.new("Highlight")
+                        highlight.Name = "ESPHighlight"
+                        highlight.FillColor = Color3.fromRGB(0, 255, 0)
+                        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                        highlight.FillTransparency = 0.5
+                        highlight.OutlineTransparency = 0
+                        highlight.Parent = char
+                    else
+                        highlight.FillColor = Color3.fromRGB(0, 255, 0)
+                    end
+                end
+            end
+            
+            wait(0.1)
+        end
+        
+        if player.Character then
+            local highlight = player.Character:FindFirstChild("ESPHighlight")
+            if highlight then highlight:Destroy() end
+        end
+    end)
+end
+
+local function RefreshAllESP()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local highlight = player.Character:FindFirstChild("ESPHighlight")
+            if highlight then
+                highlight:Destroy()
+            end
+            if ESPEnabled then
+                CreateESP(player)
+            end
+        end
+    end
+end
+
+local function RemoveAllESP()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player.Character then
+            local highlight = player.Character:FindFirstChild("ESPHighlight")
+            if highlight then highlight:Destroy() end
+        end
+    end
+end
+
+-- ESP Button
+CreateFeatureButton(FeaturesFrame, "ESPButton", "ESP [OFF]", function()
+    ESPEnabled = not ESPEnabled
+    local button = FeaturesFrame:FindFirstChild("ESPButton")
+    
+    if ESPEnabled then
+        button.Text = "ESP [ON]"
+        
+        for _, player in pairs(Players:GetPlayers()) do
+            CreateESP(player)
+        end
+        
+        ESPConnections.PlayerAdded = Players.PlayerAdded:Connect(function(player)
+            if ESPEnabled then
+                CreateESP(player)
+            end
+        end)
+        
+        -- Auto-refresh ESP every 5 seconds
+        ESPRefreshConnection = RunService.Heartbeat:Connect(function()
+            if ESPEnabled then
+                task.wait(5)
+                RefreshAllESP()
+            end
+        end)
+    else
+        button.Text = "ESP [OFF]"
+        RemoveAllESP()
+        
+        if ESPConnections.PlayerAdded then
+            ESPConnections.PlayerAdded:Disconnect()
+        end
+        
+        if ESPRefreshConnection then
+            ESPRefreshConnection:Disconnect()
+        end
+    end
+end)
+
+-- Aimbot Function
+local function GetClosestPlayer()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local head = player.Character:FindFirstChild("Head")
+            local humanoid = player.Character:FindFirstChild("Humanoid")
+            
+            if head and humanoid and humanoid.Health > 0 then
+                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head") then
+                    local distance = (head.Position - LocalPlayer.Character.Head.Position).Magnitude
+                    
+                    if distance < shortestDistance and distance < 500 then
+                        closestPlayer = player
+                        shortestDistance = distance
+                    end
+                end
+            end
+        end
+    end
+    
+    return closestPlayer
+end
+
+local function EnableAimbot()
+    if AimbotConnection then
+        AimbotConnection:Disconnect()
+    end
+    
+    AimbotConnection = RunService.RenderStepped:Connect(function()
+        if not AimbotEnabled then return end
+        
+        if not LocalPlayer.Character then return end
+        if not LocalPlayer.Character:FindFirstChild("Head") then return end
+        
+        local target = GetClosestPlayer()
+        
+        if target then
+            local targetChar = target.Character
+            if targetChar then
+                local targetHead = targetChar:FindFirstChild("Head")
+                
+                if targetHead then
+                    local camera = workspace.CurrentCamera
+                    if camera then
+                        camera.CFrame = CFrame.new(camera.CFrame.Position, targetHead.Position)
+                    end
+                end
+            end
+        end
+    end)
+end
+
+local function DisableAimbot()
+    if AimbotConnection then
+        AimbotConnection:Disconnect()
+        AimbotConnection = nil
+    end
+end
+
+-- Aimbot Button
+CreateFeatureButton(FeaturesFrame, "AimbotButton", "Aimbot [OFF] - L key", function()
+    AimbotEnabled = not AimbotEnabled
+    local button = FeaturesFrame:FindFirstChild("AimbotButton")
+    
+    if AimbotEnabled then
+        button.Text = "Aimbot [ON] - L key"
+        EnableAimbot()
+    else
+        button.Text = "Aimbot [OFF] - L key"
+        DisableAimbot()
+    end
+end)
+
+-- Speed Boost
+CreateFeatureButton(FeaturesFrame, "SpeedButton", "Speed Boost [OFF]", function()
+    SpeedEnabled = not SpeedEnabled
+    local button = FeaturesFrame:FindFirstChild("SpeedButton")
+    
+    if SpeedEnabled then
+        button.Text = "Speed Boost [ON]"
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            OriginalSpeed = LocalPlayer.Character.Humanoid.WalkSpeed
+            LocalPlayer.Character.Humanoid.WalkSpeed = 50
+        end
+    else
+        button.Text = "Speed Boost [OFF]"
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid.WalkSpeed = OriginalSpeed
+        end
+    end
+end)
+
+-- Infinite Jump
+CreateFeatureButton(FeaturesFrame, "JumpButton", "Infinite Jump [OFF]", function()
+    InfiniteJumpEnabled = not InfiniteJumpEnabled
+    local button = FeaturesFrame:FindFirstChild("JumpButton")
+    button.Text = InfiniteJumpEnabled and "Infinite Jump [ON]" or "Infinite Jump [OFF]"
+    
+    if InfiniteJumpEnabled then
+        JumpConnection = UserInputService.JumpRequest:Connect(function()
+            if InfiniteJumpEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+                LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+            end
+        end)
+    else
+        if JumpConnection then
+            JumpConnection:Disconnect()
+        end
+    end
+end)
+
+-- No Recoil
+CreateFeatureButton(FeaturesFrame, "RecoilButton", "No Recoil [OFF]", function()
+    NoRecoilEnabled = not NoRecoilEnabled
+    local button = FeaturesFrame:FindFirstChild("RecoilButton")
+    button.Text = NoRecoilEnabled and "No Recoil [ON]" or "No Recoil [OFF]"
+end)
+
+-- Wallhack
+CreateFeatureButton(FeaturesFrame, "WallhackButton", "Wallhack [OFF]", function()
+    WallhackEnabled = not WallhackEnabled
+    local button = FeaturesFrame:FindFirstChild("WallhackButton")
+    button.Text = WallhackEnabled and "Wallhack [ON]" or "Wallhack [OFF]"
+    
+    for _, part in pairs(workspace:GetDescendants()) do
+        if part:IsA("BasePart") and (part.Name == "Wall" or part.Name == "wall") then
+            part.Transparency = WallhackEnabled and 0.7 or 0
+        end
+    end
+end)
+
+-- Silent Aim
+CreateFeatureButton(FeaturesFrame, "SilentAimButton", "Silent Aim [OFF]", function()
+    SilentAimEnabled = not SilentAimEnabled
+    local button = FeaturesFrame:FindFirstChild("SilentAimButton")
+    button.Text = SilentAimEnabled and "Silent Aim [ON]" or "Silent Aim [OFF]"
+end)
+
+-- Auto Headshot
+CreateFeatureButton(FeaturesFrame, "HeadshotButton", "Auto Headshot [OFF]", function()
+    AutoHeadshotEnabled = not AutoHeadshotEnabled
+    local button = FeaturesFrame:FindFirstChild("HeadshotButton")
+    button.Text = AutoHeadshotEnabled and "Auto Headshot [ON]" or "Auto Headshot [OFF]"
+end)
+
+-- Fly Hack
+local FlyBodyVelocity = nil
+
+local function EnableFly()
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        return
+    end
+    
+    local hrp = LocalPlayer.Character.HumanoidRootPart
+    
+    if FlyBodyVelocity then
+        FlyBodyVelocity:Destroy()
+    end
+    
+    FlyBodyVelocity = Instance.new("BodyVelocity")
+    FlyBodyVelocity.Name = "FlyVelocity"
+    FlyBodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+    FlyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    FlyBodyVelocity.Parent = hrp
+    
+    if FlyConnection then
+        FlyConnection:Disconnect()
+    end
+    
+    FlyConnection = RunService.Heartbeat:Connect(function()
+        if not FlyEnabled then return end
+        
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local speed = 2
+            local direction = Vector3.new(0, 0, 0)
+            
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                direction = direction + workspace.CurrentCamera.CFrame.LookVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                direction = direction - workspace.CurrentCamera.CFrame.LookVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                direction = direction - workspace.CurrentCamera.CFrame.RightVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                direction = direction + workspace.CurrentCamera.CFrame.RightVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                direction = direction + Vector3.new(0, 1, 0)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+                direction = direction - Vector3.new(0, 1, 0)
+            end
+            
+            if FlyBodyVelocity then
+                FlyBodyVelocity.Velocity = direction * speed * 50
+            end
+        else
+            task.wait(0.5)
+            EnableFly()
+        end
+    end)
+end
+
+local function DisableFly()
+    if FlyConnection then
+        FlyConnection:Disconnect()
+        FlyConnection = nil
+    end
+    
+    if FlyBodyVelocity then
+        FlyBodyVelocity:Destroy()
+        FlyBodyVelocity = nil
+    end
+    
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local bv = LocalPlayer.Character.HumanoidRootPart:FindFirstChild("FlyVelocity")
+        if bv then
+            bv:Destroy()
+        end
+    end
+end
+
+CreateFeatureButton(FeaturesFrame, "FlyButton", "Fly [OFF]", function()
+    FlyEnabled = not FlyEnabled
+    local button = FeaturesFrame:FindFirstChild("FlyButton")
+    button.Text = FlyEnabled and "Fly [ON]" or "Fly [OFF]"
+    
+    if FlyEnabled then
+        EnableFly()
+    else
+        DisableFly()
+    end
+end)
+
+-- Instant Respawn
+CreateFeatureButton(FeaturesFrame, "RespawnButton", "Instant Respawn", function()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.Health = 0
+    end
+end)
+
+-- Teleport to Enemy
+CreateFeatureButton(FeaturesFrame, "TeleportButton", "Teleport to Enemy", function()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and IsEnemy(player) and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+                break
+            end
+        end
+    end
+end)
+
+-- Anti-Kick
+CreateFeatureButton(FeaturesFrame, "AntiKickButton", "Anti-Kick [OFF]", function()
+    AntiKickEnabled = not AntiKickEnabled
+    local button = FeaturesFrame:FindFirstChild("AntiKickButton")
+    button.Text = AntiKickEnabled and "Anti-Kick [ON]" or "Anti-Kick [OFF]"
+    
+    if AntiKickEnabled then
+        pcall(function()
+            local mt = getrawmetatable(game)
+            local old = mt.__namecall
+            setreadonly(mt, false)
+            mt.__namecall = newcclosure(function(self, ...)
+                local method = getnamecallmethod()
+                if method == "Kick" then
+                    return
+                end
+                return old(self, ...)
+            end)
+            setreadonly(mt, true)
+        end)
+    end
+end)
+
+-- Update Canvas Sizes
+UpdatesFrame.CanvasSize = UDim2.new(0, 0, 0, UpdatesList.AbsoluteContentSize.Y + 10)
+UpdatesList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    UpdatesFrame.CanvasSize = UDim2.new(0, 0, 0, UpdatesList.AbsoluteContentSize.Y + 10)
+end)
+
+FeaturesFrame.CanvasSize = UDim2.new(0, 0, 0, FeaturesList.AbsoluteContentSize.Y + 10)
+FeaturesList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    FeaturesFrame.CanvasSize = UDim2.new(0, 0, 0, FeaturesList.AbsoluteContentSize.Y + 10)
+end)
+
+-- Keybinds
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == Enum.KeyCode.Z then
+        MainFrame.Visible = not MainFrame.Visible
+    end
+    
+    if input.KeyCode == Enum.KeyCode.L then
+        AimbotEnabled = not AimbotEnabled
+        local button = FeaturesFrame:FindFirstChild("AimbotButton")
+        
+        if AimbotEnabled then
+            button.Text = "Aimbot [ON] - L key"
+            EnableAimbot()
+        else
+            button.Text = "Aimbot [OFF] - L key"
+            DisableAimbot()
+        end
+    end
+end)
+
+-- Character Respawn Handler
+LocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(0.5)
+    
+    if SpeedEnabled then
+        char:WaitForChild("Humanoid").WalkSpeed = 50
+    end
+    
+    if FlyEnabled then
+        task.wait(1)
+        EnableFly()
+    end
+    
+    if AimbotEnabled then
+        task.wait(0.5)
+        EnableAimbot()
+    end
+end)
+
+-- Start with Updates tab
+SwitchTab("UpdatesTab")
+
+print("✅ Leliks Rivals Script v1.0.7 loaded successfully!")
+print("🔑 Z key = Toggle GUI")
+print("🎯 L key = Toggle Aimbot")
