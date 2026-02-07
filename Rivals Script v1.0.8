@@ -1,4 +1,4 @@
--- Leliks Rivals Script v1.0.7
+-- Leliks Rivals Script v1.0.8
 -- Modern GUI for Roblox Rivals
 -- Z key = Toggle GUI, L key = Toggle Aimbot
 
@@ -61,7 +61,7 @@ VersionLabel.BackgroundTransparency = 1
 VersionLabel.Position = UDim2.new(1, -80, 1, -30)
 VersionLabel.Size = UDim2.new(0, 70, 0, 20)
 VersionLabel.Font = Enum.Font.GothamBold
-VersionLabel.Text = "v1.0.7"
+VersionLabel.Text = "v1.0.8"
 VersionLabel.TextColor3 = Color3.fromRGB(100, 100, 100)
 VersionLabel.TextSize = 14
 VersionLabel.TextXAlignment = Enum.TextXAlignment.Right
@@ -296,14 +296,13 @@ local function CreateUpdateText(text, order)
     return Label
 end
 
-CreateUpdateText("✅ ALL FEATURES:\n\n• ESP - See all players through walls\n• Aimbot - Auto-aim to closest player (L key)\n• Speed Boost - Move faster\n• Infinite Jump - Jump infinitely\n• No Recoil - Remove weapon recoil\n• Wallhack - See through walls\n• Silent Aim - Hidden aimbot\n• Auto Headshot - Always aim for head\n• Fly - Fly around the map\n• Instant Respawn - Respawn immediately\n• Teleport to Enemy - TP to nearest enemy\n• Anti-Kick - Prevent kicks", 1)
+CreateUpdateText("✅ ALL FEATURES:\n\n• ESP - See all players through walls with names\n• Aimbot - Auto-aim to closest player (L key)\n• Speed Boost - Move faster\n• Infinite Jump - Jump infinitely\n• No Recoil - Remove weapon recoil\n• Wallhack - See through walls\n• Silent Aim - Hidden aimbot\n• Auto Headshot - Always aim for head\n• Fly - Fly around the map\n• Instant Respawn - Respawn immediately\n• Teleport to Enemy - TP to nearest enemy\n• Anti-Kick - Prevent kicks", 1)
 
-CreateUpdateText("🆕 LATEST UPDATES (v1.0.7):\n\n• New modern tabbed interface\n• Auto-refreshing ESP (updates every 5 seconds)\n• Smooth ESP transitions\n• L key for Aimbot toggle\n• Z key for GUI toggle\n• Improved performance\n• Better UI design\n• Fixed fly mode persistence", 2)
+CreateUpdateText("🆕 LATEST UPDATES (v1.0.8):\n\n• Fixed ESP - now shows player names\n• ESP persists across rounds\n• Removed auto-refresh (no lag)\n• Improved ESP performance\n• Fixed fly persistence\n• Better character respawn handling\n• Smooth ESP transitions", 2)
 
 -- Variables
 local ESPEnabled = false
 local ESPConnections = {}
-local ESPRefreshConnection = nil
 local AimbotEnabled = false
 local AimbotConnection = nil
 local SpeedEnabled = false
@@ -316,6 +315,7 @@ local SilentAimEnabled = false
 local AutoHeadshotEnabled = false
 local FlyEnabled = false
 local FlyConnection = nil
+local FlyBodyVelocity = nil
 local AntiKickEnabled = false
 
 -- Team Check Function
@@ -331,72 +331,89 @@ local function IsEnemy(player)
     return true
 end
 
--- AUTO-REFRESHING ESP (every 5 seconds, smooth)
-local function CreateESP(player)
+-- FIXED ESP WITH NAMES - PERSISTS ACROSS ROUNDS
+local function CreateESPForCharacter(player, character)
+    if player == LocalPlayer then return end
+    if not character then return end
+    
+    -- Remove old ESP first
+    local oldHighlight = character:FindFirstChild("ESPHighlight")
+    local oldBillboard = character:FindFirstChild("ESPNameTag")
+    if oldHighlight then oldHighlight:Destroy() end
+    if oldBillboard then oldBillboard:Destroy() end
+    
+    -- Create Highlight
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "ESPHighlight"
+    highlight.Adornee = character
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    
+    if IsEnemy(player) then
+        highlight.FillColor = Color3.fromRGB(255, 0, 0)
+    else
+        highlight.FillColor = Color3.fromRGB(0, 255, 0)
+    end
+    
+    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.Parent = character
+    
+    -- Create Name Tag
+    local head = character:FindFirstChild("Head")
+    if head then
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = "ESPNameTag"
+        billboard.Adornee = head
+        billboard.Size = UDim2.new(0, 200, 0, 50)
+        billboard.StudsOffset = Vector3.new(0, 3, 0)
+        billboard.AlwaysOnTop = true
+        billboard.Parent = character
+        
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Parent = billboard
+        nameLabel.Size = UDim2.new(1, 0, 1, 0)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Text = player.Name
+        nameLabel.Font = Enum.Font.GothamBold
+        nameLabel.TextSize = 16
+        nameLabel.TextColor3 = IsEnemy(player) and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(0, 255, 0)
+        nameLabel.TextStrokeTransparency = 0
+        nameLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    end
+end
+
+local function SetupESPForPlayer(player)
     if player == LocalPlayer then return end
     
-    spawn(function()
-        while ESPEnabled and player do
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                local char = player.Character
-                local highlight = char:FindFirstChild("ESPHighlight")
-                
-                if IsEnemy(player) then
-                    if not highlight then
-                        highlight = Instance.new("Highlight")
-                        highlight.Name = "ESPHighlight"
-                        highlight.FillColor = Color3.fromRGB(255, 0, 0)
-                        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-                        highlight.FillTransparency = 0.5
-                        highlight.OutlineTransparency = 0
-                        highlight.Parent = char
-                    else
-                        highlight.FillColor = Color3.fromRGB(255, 0, 0)
-                    end
-                else
-                    if not highlight then
-                        highlight = Instance.new("Highlight")
-                        highlight.Name = "ESPHighlight"
-                        highlight.FillColor = Color3.fromRGB(0, 255, 0)
-                        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-                        highlight.FillTransparency = 0.5
-                        highlight.OutlineTransparency = 0
-                        highlight.Parent = char
-                    else
-                        highlight.FillColor = Color3.fromRGB(0, 255, 0)
-                    end
-                end
-            end
-            
-            wait(0.1)
-        end
-        
-        if player.Character then
-            local highlight = player.Character:FindFirstChild("ESPHighlight")
-            if highlight then highlight:Destroy() end
+    -- Setup for current character
+    if player.Character then
+        CreateESPForCharacter(player, player.Character)
+    end
+    
+    -- Setup for future characters
+    player.CharacterAdded:Connect(function(character)
+        if ESPEnabled then
+            task.wait(0.5)
+            CreateESPForCharacter(player, character)
         end
     end)
 end
 
-local function RefreshAllESP()
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            local highlight = player.Character:FindFirstChild("ESPHighlight")
-            if highlight then
-                highlight:Destroy()
-            end
-            if ESPEnabled then
-                CreateESP(player)
-            end
-        end
-    end
+local function RemoveESPFromCharacter(character)
+    if not character then return end
+    
+    local highlight = character:FindFirstChild("ESPHighlight")
+    local billboard = character:FindFirstChild("ESPNameTag")
+    
+    if highlight then highlight:Destroy() end
+    if billboard then billboard:Destroy() end
 end
 
 local function RemoveAllESP()
     for _, player in pairs(Players:GetPlayers()) do
         if player.Character then
-            local highlight = player.Character:FindFirstChild("ESPHighlight")
-            if highlight then highlight:Destroy() end
+            RemoveESPFromCharacter(player.Character)
         end
     end
 end
@@ -409,21 +426,22 @@ CreateFeatureButton(FeaturesFrame, "ESPButton", "ESP [OFF]", function()
     if ESPEnabled then
         button.Text = "ESP [ON]"
         
+        -- Setup ESP for all current players
         for _, player in pairs(Players:GetPlayers()) do
-            CreateESP(player)
+            SetupESPForPlayer(player)
         end
         
+        -- Setup ESP for new players
         ESPConnections.PlayerAdded = Players.PlayerAdded:Connect(function(player)
             if ESPEnabled then
-                CreateESP(player)
+                SetupESPForPlayer(player)
             end
         end)
         
-        -- Auto-refresh ESP every 5 seconds
-        ESPRefreshConnection = RunService.Heartbeat:Connect(function()
-            if ESPEnabled then
-                task.wait(5)
-                RefreshAllESP()
+        -- Cleanup when players leave
+        ESPConnections.PlayerRemoving = Players.PlayerRemoving:Connect(function(player)
+            if player.Character then
+                RemoveESPFromCharacter(player.Character)
             end
         end)
     else
@@ -433,9 +451,8 @@ CreateFeatureButton(FeaturesFrame, "ESPButton", "ESP [OFF]", function()
         if ESPConnections.PlayerAdded then
             ESPConnections.PlayerAdded:Disconnect()
         end
-        
-        if ESPRefreshConnection then
-            ESPRefreshConnection:Disconnect()
+        if ESPConnections.PlayerRemoving then
+            ESPConnections.PlayerRemoving:Disconnect()
         end
     end
 end)
@@ -588,9 +605,7 @@ CreateFeatureButton(FeaturesFrame, "HeadshotButton", "Auto Headshot [OFF]", func
     button.Text = AutoHeadshotEnabled and "Auto Headshot [ON]" or "Auto Headshot [OFF]"
 end)
 
--- Fly Hack
-local FlyBodyVelocity = nil
-
+-- FIXED FLY - PERSISTS ACROSS ROUNDS
 local function EnableFly()
     if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         return
@@ -638,12 +653,16 @@ local function EnableFly()
                 direction = direction - Vector3.new(0, 1, 0)
             end
             
-            if FlyBodyVelocity then
+            if FlyBodyVelocity and FlyBodyVelocity.Parent then
                 FlyBodyVelocity.Velocity = direction * speed * 50
+            else
+                EnableFly()
             end
         else
             task.wait(0.5)
-            EnableFly()
+            if FlyEnabled then
+                EnableFly()
+            end
         end
     end)
 end
@@ -754,28 +773,42 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- Character Respawn Handler
+-- Character Respawn Handler - KEEPS FEATURES ACROSS ROUNDS
 LocalPlayer.CharacterAdded:Connect(function(char)
     task.wait(0.5)
     
+    -- Keep Speed
     if SpeedEnabled then
         char:WaitForChild("Humanoid").WalkSpeed = 50
     end
     
+    -- Keep Fly
     if FlyEnabled then
         task.wait(1)
         EnableFly()
     end
     
+    -- Keep Aimbot
     if AimbotEnabled then
         task.wait(0.5)
         EnableAimbot()
+    end
+    
+    -- Keep ESP for this character
+    if ESPEnabled then
+        task.wait(0.5)
+        for _, player in pairs(Players:GetPlayers()) do
+            if player.Character then
+                CreateESPForCharacter(player, player.Character)
+            end
+        end
     end
 end)
 
 -- Start with Updates tab
 SwitchTab("UpdatesTab")
 
-print("✅ Leliks Rivals Script v1.0.7 loaded successfully!")
+print("✅ Leliks Rivals Script v1.0.8 loaded successfully!")
 print("🔑 Z key = Toggle GUI")
 print("🎯 L key = Toggle Aimbot")
+print("👁️ ESP with names - persists across rounds!")
