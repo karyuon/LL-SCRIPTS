@@ -1,9 +1,48 @@
--- Leliks Rivals Script v1.0.9
+-- Leliks Rivals Script v1.1.0
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
+
+-- Load saved keybinds and settings
+local SavedSettings = {
+    Keybinds = {
+        Fly = Enum.KeyCode.F,
+        ESP = Enum.KeyCode.E
+    },
+    FOV = 70
+}
+
+-- Try to load saved settings
+pcall(function()
+    if readfile and isfile and isfile("LeliksRivalsSettings.json") then
+        local loaded = game:GetService("HttpService"):JSONDecode(readfile("LeliksRivalsSettings.json"))
+        if loaded.Keybinds then
+            SavedSettings.Keybinds.Fly = Enum.KeyCode[loaded.Keybinds.Fly]
+            SavedSettings.Keybinds.ESP = Enum.KeyCode[loaded.Keybinds.ESP]
+        end
+        if loaded.FOV then
+            SavedSettings.FOV = loaded.FOV
+        end
+    end
+end)
+
+-- Save settings function
+local function SaveSettings()
+    pcall(function()
+        if writefile then
+            local saveData = {
+                Keybinds = {
+                    Fly = tostring(SavedSettings.Keybinds.Fly):gsub("Enum.KeyCode.", ""),
+                    ESP = tostring(SavedSettings.Keybinds.ESP):gsub("Enum.KeyCode.", "")
+                },
+                FOV = SavedSettings.FOV
+            }
+            writefile("LeliksRivalsSettings.json", game:GetService("HttpService"):JSONEncode(saveData))
+        end
+    end)
+end
 
 -- Create ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
@@ -60,7 +99,7 @@ VersionLabel.BackgroundTransparency = 1
 VersionLabel.Position = UDim2.new(0, 10, 1, -30)
 VersionLabel.Size = UDim2.new(0, 70, 0, 20)
 VersionLabel.Font = Enum.Font.GothamBold
-VersionLabel.Text = "v1.0.9"
+VersionLabel.Text = "v1.1.0"
 VersionLabel.TextColor3 = Color3.fromRGB(100, 100, 100)
 VersionLabel.TextSize = 14
 VersionLabel.TextTransparency = 0.3
@@ -165,8 +204,57 @@ local function CreateTabButton(name, text, order)
     return Button
 end
 
--- Feature Button Creation Function
-local function CreateFeatureButton(parent, name, text, callback)
+-- Keybind Selector Creation Function
+local currentlyBinding = nil
+
+local function CreateKeybindButton(parent, featureName, currentKey)
+    local KeybindButton = Instance.new("TextButton")
+    local KeybindCorner = Instance.new("UICorner")
+    
+    KeybindButton.Name = featureName .. "Keybind"
+    KeybindButton.Parent = parent
+    KeybindButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    KeybindButton.Position = UDim2.new(1, -65, 0, 5)
+    KeybindButton.Size = UDim2.new(0, 60, 0, 35)
+    KeybindButton.Font = Enum.Font.GothamBold
+    KeybindButton.Text = tostring(currentKey):gsub("Enum.KeyCode.", "")
+    KeybindButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    KeybindButton.TextSize = 12
+    KeybindButton.BorderSizePixel = 0
+    KeybindButton.ZIndex = 2
+    
+    KeybindCorner.CornerRadius = UDim.new(0, 6)
+    KeybindCorner.Parent = KeybindButton
+    
+    KeybindButton.MouseButton1Click:Connect(function()
+        if currentlyBinding then return end
+        
+        currentlyBinding = featureName
+        KeybindButton.Text = "..."
+        KeybindButton.BackgroundColor3 = Color3.fromRGB(70, 130, 255)
+        
+        local connection
+        connection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+            if input.UserInputType == Enum.UserInputType.Keyboard then
+                local key = input.KeyCode
+                
+                if key ~= Enum.KeyCode.Unknown then
+                    SavedSettings.Keybinds[featureName] = key
+                    KeybindButton.Text = tostring(key):gsub("Enum.KeyCode.", "")
+                    KeybindButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+                    SaveSettings()
+                    currentlyBinding = nil
+                    connection:Disconnect()
+                end
+            end
+        end)
+    end)
+    
+    return KeybindButton
+end
+
+-- Feature Button Creation Function (with optional keybind)
+local function CreateFeatureButton(parent, name, text, callback, hasKeybind)
     local Button = Instance.new("TextButton")
     local ButtonCorner = Instance.new("UICorner")
     local ButtonStroke = Instance.new("UIStroke")
@@ -198,6 +286,11 @@ local function CreateFeatureButton(parent, name, text, callback)
     end)
     
     Button.MouseButton1Click:Connect(callback)
+    
+    if hasKeybind then
+        local keybindName = name:gsub("Button", "")
+        CreateKeybindButton(Button, keybindName, SavedSettings.Keybinds[keybindName])
+    end
     
     return Button
 end
@@ -306,9 +399,9 @@ local function CreateUpdateText(text, order)
     return Label
 end
 
-CreateUpdateText("✅ ALL FEATURES:\n\n• ESP - See all players through walls with names\n• Aimbot - Auto-aim to closest player (L key)\n• Speed Boost - Move faster\n• Infinite Jump - Jump infinitely\n• No Recoil - Remove weapon recoil\n• Wallhack - See through walls\n• Silent Aim - Hidden aimbot\n• Auto Headshot - Always aim for head\n• Fly - Fly around the map\n• NoClip - Walk through walls\n• XRay - See through all parts\n• Instant Respawn - Respawn immediately\n• Teleport to Enemy - TP to nearest enemy\n• Anti-Kick - Prevent kicks", 1)
+CreateUpdateText("✅ ALL FEATURES:\n\n• ESP - See all players through walls with names\n• Aimbot - Auto-aim to closest player (L key)\n• Speed Boost - Move faster\n• Infinite Jump - Jump infinitely\n• No Recoil - Remove weapon recoil\n• Wallhack - See through walls\n• Silent Aim - Hidden aimbot\n• Auto Headshot - Always aim for head\n• Fly - Fly around the map\n• NoClip - Walk through walls\n• XRay - See through all parts\n• FOV Changer - Adjust camera FOV (20-150)\n• Instant Respawn - Respawn immediately\n• Teleport to Enemy - TP to nearest enemy\n• Anti-Kick - Prevent kicks", 1)
 
-CreateUpdateText("🆕 LATEST UPDATES (v1.0.9):\n\n• FIXED: Speed Boost now works properly\n• NEW: NoClip - Walk through walls and objects\n• NEW: XRay - See through all map parts\n• Added keybind info display (Z key)\n• Improved speed persistence across rounds\n• Better UI layout with repositioned labels\n• All features persist across rounds\n• Performance improvements", 2)
+CreateUpdateText("🆕 LATEST UPDATES (v1.1.0):\n\n• NEW: Custom Keybinds - Set your own keys for Fly (default F) and ESP (default E)\n• NEW: FOV Changer - Adjust your field of view from 20 to 150\n• Keybind Settings Save - Your keybinds are remembered between sessions\n• Click keybind buttons to rebind\n• Small keybind indicators on feature buttons\n• Improved settings persistence", 2)
 
 -- Variables
 local ESPEnabled = false
@@ -317,7 +410,6 @@ local AimbotEnabled = false
 local AimbotConnection = nil
 local SpeedEnabled = false
 local SpeedConnection = nil
-local OriginalSpeed = 16
 local InfiniteJumpEnabled = false
 local JumpConnection = nil
 local NoRecoilEnabled = false
@@ -332,6 +424,7 @@ local NoClipEnabled = false
 local NoClipConnection = nil
 local XRayEnabled = false
 local XRayParts = {}
+local OriginalFOV = workspace.CurrentCamera.FieldOfView
 
 -- Team Check Function
 local function IsEnemy(player)
@@ -428,7 +521,7 @@ local function RemoveAllESP()
     end
 end
 
--- ESP Button
+-- ESP Button with Keybind
 CreateFeatureButton(FeaturesFrame, "ESPButton", "ESP [OFF]", function()
     ESPEnabled = not ESPEnabled
     local button = FeaturesFrame:FindFirstChild("ESPButton")
@@ -462,7 +555,7 @@ CreateFeatureButton(FeaturesFrame, "ESPButton", "ESP [OFF]", function()
             ESPConnections.PlayerRemoving:Disconnect()
         end
     end
-end)
+end, true)
 
 -- Aimbot Function
 local function GetClosestPlayer()
@@ -538,9 +631,9 @@ CreateFeatureButton(FeaturesFrame, "AimbotButton", "Aimbot [OFF] - L key", funct
         button.Text = "Aimbot [OFF] - L key"
         DisableAimbot()
     end
-end)
+end, false)
 
--- FIXED SPEED BOOST
+-- Speed Boost
 local function EnableSpeed()
     if SpeedConnection then
         SpeedConnection:Disconnect()
@@ -577,7 +670,7 @@ CreateFeatureButton(FeaturesFrame, "SpeedButton", "Speed Boost [OFF]", function(
         button.Text = "Speed Boost [OFF]"
         DisableSpeed()
     end
-end)
+end, false)
 
 -- Infinite Jump
 CreateFeatureButton(FeaturesFrame, "JumpButton", "Infinite Jump [OFF]", function()
@@ -596,14 +689,14 @@ CreateFeatureButton(FeaturesFrame, "JumpButton", "Infinite Jump [OFF]", function
             JumpConnection:Disconnect()
         end
     end
-end)
+end, false)
 
 -- No Recoil
 CreateFeatureButton(FeaturesFrame, "RecoilButton", "No Recoil [OFF]", function()
     NoRecoilEnabled = not NoRecoilEnabled
     local button = FeaturesFrame:FindFirstChild("RecoilButton")
     button.Text = NoRecoilEnabled and "No Recoil [ON]" or "No Recoil [OFF]"
-end)
+end, false)
 
 -- Wallhack
 CreateFeatureButton(FeaturesFrame, "WallhackButton", "Wallhack [OFF]", function()
@@ -616,23 +709,23 @@ CreateFeatureButton(FeaturesFrame, "WallhackButton", "Wallhack [OFF]", function(
             part.Transparency = WallhackEnabled and 0.7 or 0
         end
     end
-end)
+end, false)
 
 -- Silent Aim
 CreateFeatureButton(FeaturesFrame, "SilentAimButton", "Silent Aim [OFF]", function()
     SilentAimEnabled = not SilentAimEnabled
     local button = FeaturesFrame:FindFirstChild("SilentAimButton")
     button.Text = SilentAimEnabled and "Silent Aim [ON]" or "Silent Aim [OFF]"
-end)
+end, false)
 
 -- Auto Headshot
 CreateFeatureButton(FeaturesFrame, "HeadshotButton", "Auto Headshot [OFF]", function()
     AutoHeadshotEnabled = not AutoHeadshotEnabled
     local button = FeaturesFrame:FindFirstChild("HeadshotButton")
     button.Text = AutoHeadshotEnabled and "Auto Headshot [ON]" or "Auto Headshot [OFF]"
-end)
+end, false)
 
--- FLY
+-- FLY with Keybind
 local function EnableFly()
     if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         return
@@ -723,9 +816,9 @@ CreateFeatureButton(FeaturesFrame, "FlyButton", "Fly [OFF]", function()
     else
         DisableFly()
     end
-end)
+end, true)
 
--- NOCLIP
+-- NoClip
 local function EnableNoClip()
     if NoClipConnection then
         NoClipConnection:Disconnect()
@@ -769,9 +862,9 @@ CreateFeatureButton(FeaturesFrame, "NoClipButton", "NoClip [OFF]", function()
     else
         DisableNoClip()
     end
-end)
+end, false)
 
--- XRAY
+-- XRay
 local function EnableXRay()
     XRayParts = {}
     
@@ -807,14 +900,105 @@ CreateFeatureButton(FeaturesFrame, "XRayButton", "XRay [OFF]", function()
     else
         DisableXRay()
     end
-end)
+end, false)
+
+-- FOV CHANGER
+local function CreateFOVSlider()
+    local SliderFrame = Instance.new("Frame")
+    SliderFrame.Name = "FOVSlider"
+    SliderFrame.Parent = FeaturesFrame
+    SliderFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    SliderFrame.Size = UDim2.new(1, 0, 0, 60)
+    SliderFrame.BorderSizePixel = 0
+    
+    local SliderCorner = Instance.new("UICorner")
+    SliderCorner.CornerRadius = UDim.new(0, 8)
+    SliderCorner.Parent = SliderFrame
+    
+    local SliderStroke = Instance.new("UIStroke")
+    SliderStroke.Color = Color3.fromRGB(70, 130, 255)
+    SliderStroke.Thickness = 2
+    SliderStroke.Parent = SliderFrame
+    
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Parent = SliderFrame
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Position = UDim2.new(0, 10, 0, 5)
+    TitleLabel.Size = UDim2.new(1, -20, 0, 20)
+    TitleLabel.Font = Enum.Font.GothamBold
+    TitleLabel.Text = "FOV: " .. SavedSettings.FOV
+    TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TitleLabel.TextSize = 16
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local SliderBar = Instance.new("Frame")
+    SliderBar.Parent = SliderFrame
+    SliderBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    SliderBar.Position = UDim2.new(0, 10, 0, 35)
+    SliderBar.Size = UDim2.new(1, -20, 0, 15)
+    SliderBar.BorderSizePixel = 0
+    
+    local BarCorner = Instance.new("UICorner")
+    BarCorner.CornerRadius = UDim.new(0, 7)
+    BarCorner.Parent = SliderBar
+    
+    local SliderFill = Instance.new("Frame")
+    SliderFill.Parent = SliderBar
+    SliderFill.BackgroundColor3 = Color3.fromRGB(70, 130, 255)
+    SliderFill.Size = UDim2.new((SavedSettings.FOV - 20) / 130, 0, 1, 0)
+    SliderFill.BorderSizePixel = 0
+    
+    local FillCorner = Instance.new("UICorner")
+    FillCorner.CornerRadius = UDim.new(0, 7)
+    FillCorner.Parent = SliderFill
+    
+    local SliderButton = Instance.new("TextButton")
+    SliderButton.Parent = SliderBar
+    SliderButton.BackgroundTransparency = 1
+    SliderButton.Size = UDim2.new(1, 0, 1, 0)
+    SliderButton.Text = ""
+    
+    local dragging = false
+    
+    SliderButton.MouseButton1Down:Connect(function()
+        dragging = true
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    
+    RunService.RenderStepped:Connect(function()
+        if dragging then
+            local mouse = UserInputService:GetMouseLocation()
+            local relativePos = mouse.X - SliderBar.AbsolutePosition.X
+            local percentage = math.clamp(relativePos / SliderBar.AbsoluteSize.X, 0, 1)
+            
+            local fov = math.floor(20 + (percentage * 130))
+            SavedSettings.FOV = fov
+            
+            TitleLabel.Text = "FOV: " .. fov
+            SliderFill.Size = UDim2.new(percentage, 0, 1, 0)
+            
+            workspace.CurrentCamera.FieldOfView = fov
+            SaveSettings()
+        end
+    end)
+    
+    -- Apply saved FOV
+    workspace.CurrentCamera.FieldOfView = SavedSettings.FOV
+end
+
+CreateFOVSlider()
 
 -- Instant Respawn
 CreateFeatureButton(FeaturesFrame, "RespawnButton", "Instant Respawn", function()
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
         LocalPlayer.Character.Humanoid.Health = 0
     end
-end)
+end, false)
 
 -- Teleport to Enemy
 CreateFeatureButton(FeaturesFrame, "TeleportButton", "Teleport to Enemy", function()
@@ -826,7 +1010,7 @@ CreateFeatureButton(FeaturesFrame, "TeleportButton", "Teleport to Enemy", functi
             end
         end
     end
-end)
+end, false)
 
 -- Anti-Kick
 CreateFeatureButton(FeaturesFrame, "AntiKickButton", "Anti-Kick [OFF]", function()
@@ -849,7 +1033,7 @@ CreateFeatureButton(FeaturesFrame, "AntiKickButton", "Anti-Kick [OFF]", function
             setreadonly(mt, true)
         end)
     end
-end)
+end, false)
 
 -- Update Canvas Sizes
 UpdatesFrame.CanvasSize = UDim2.new(0, 0, 0, UpdatesList.AbsoluteContentSize.Y + 10)
@@ -864,7 +1048,7 @@ end)
 
 -- Keybinds
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
+    if gameProcessed or currentlyBinding then return end
     
     if input.KeyCode == Enum.KeyCode.Z then
         MainFrame.Visible = not MainFrame.Visible
@@ -880,6 +1064,54 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         else
             button.Text = "Aimbot [OFF] - L key"
             DisableAimbot()
+        end
+    end
+    
+    -- Custom Keybinds
+    if input.KeyCode == SavedSettings.Keybinds.Fly then
+        FlyEnabled = not FlyEnabled
+        local button = FeaturesFrame:FindFirstChild("FlyButton")
+        button.Text = FlyEnabled and "Fly [ON]" or "Fly [OFF]"
+        
+        if FlyEnabled then
+            EnableFly()
+        else
+            DisableFly()
+        end
+    end
+    
+    if input.KeyCode == SavedSettings.Keybinds.ESP then
+        ESPEnabled = not ESPEnabled
+        local button = FeaturesFrame:FindFirstChild("ESPButton")
+        
+        if ESPEnabled then
+            button.Text = "ESP [ON]"
+            
+            for _, player in pairs(Players:GetPlayers()) do
+                SetupESPForPlayer(player)
+            end
+            
+            ESPConnections.PlayerAdded = Players.PlayerAdded:Connect(function(player)
+                if ESPEnabled then
+                    SetupESPForPlayer(player)
+                end
+            end)
+            
+            ESPConnections.PlayerRemoving = Players.PlayerRemoving:Connect(function(player)
+                if player.Character then
+                    RemoveESPFromCharacter(player.Character)
+                end
+            end)
+        else
+            button.Text = "ESP [OFF]"
+            RemoveAllESP()
+            
+            if ESPConnections.PlayerAdded then
+                ESPConnections.PlayerAdded:Disconnect()
+            end
+            if ESPConnections.PlayerRemoving then
+                ESPConnections.PlayerRemoving:Disconnect()
+            end
         end
     end
 end)
@@ -916,11 +1148,14 @@ LocalPlayer.CharacterAdded:Connect(function(char)
             end
         end
     end
+    
+    -- Reapply FOV
+    workspace.CurrentCamera.FieldOfView = SavedSettings.FOV
 end)
 
 -- Start with Updates tab
 SwitchTab("UpdatesTab")
 
-print("✅ Leliks Rivals Script v1.0.9 loaded successfully!")
+print("✅ Leliks Rivals Script v1.1.0 loaded successfully!")
 print("🔑 Z key = Toggle GUI")
 print("🎯 L key = Toggle Aimbot")
