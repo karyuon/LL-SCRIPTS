@@ -1,6 +1,4 @@
--- Leliks Rivals Script v1.0.8
--- Modern GUI for Roblox Rivals
--- Z key = Toggle GUI, L key = Toggle Aimbot
+-- Leliks Rivals Script v1.0.9
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -13,6 +11,7 @@ local MainFrame = Instance.new("Frame")
 local UICorner = Instance.new("UICorner")
 local TitleLabel = Instance.new("TextLabel")
 local VersionLabel = Instance.new("TextLabel")
+local KeybindLabel = Instance.new("TextLabel")
 
 -- Sidebar
 local Sidebar = Instance.new("Frame")
@@ -54,17 +53,31 @@ TitleLabel.Text = "Leliks Rivals Script"
 TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 TitleLabel.TextSize = 26
 
--- Version Label
+-- Version Label (Bottom Left)
 VersionLabel.Name = "VersionLabel"
 VersionLabel.Parent = MainFrame
 VersionLabel.BackgroundTransparency = 1
-VersionLabel.Position = UDim2.new(1, -80, 1, -30)
+VersionLabel.Position = UDim2.new(0, 10, 1, -30)
 VersionLabel.Size = UDim2.new(0, 70, 0, 20)
 VersionLabel.Font = Enum.Font.GothamBold
-VersionLabel.Text = "v1.0.8"
+VersionLabel.Text = "v1.0.9"
 VersionLabel.TextColor3 = Color3.fromRGB(100, 100, 100)
 VersionLabel.TextSize = 14
-VersionLabel.TextXAlignment = Enum.TextXAlignment.Right
+VersionLabel.TextTransparency = 0.3
+VersionLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Keybind Info Label (Bottom Right)
+KeybindLabel.Name = "KeybindLabel"
+KeybindLabel.Parent = MainFrame
+KeybindLabel.BackgroundTransparency = 1
+KeybindLabel.Position = UDim2.new(1, -220, 1, -30)
+KeybindLabel.Size = UDim2.new(0, 210, 0, 20)
+KeybindLabel.Font = Enum.Font.GothamBold
+KeybindLabel.Text = 'Can Open/Close with "Z"'
+KeybindLabel.TextColor3 = Color3.fromRGB(100, 100, 100)
+KeybindLabel.TextSize = 14
+KeybindLabel.TextTransparency = 0.3
+KeybindLabel.TextXAlignment = Enum.TextXAlignment.Right
 
 -- Sidebar
 Sidebar.Name = "Sidebar"
@@ -228,11 +241,9 @@ FeaturesList.Padding = UDim.new(0, 10)
 local function SwitchTab(tabName)
     currentTab = tabName
     
-    -- Hide all frames
     UpdatesFrame.Visible = false
     FeaturesFrame.Visible = false
     
-    -- Update all tab buttons
     for _, child in pairs(Sidebar:GetChildren()) do
         if child:IsA("TextButton") then
             if child.Name == tabName then
@@ -245,7 +256,6 @@ local function SwitchTab(tabName)
         end
     end
     
-    -- Show selected frame
     if tabName == "UpdatesTab" then
         UpdatesFrame.Visible = true
     elseif tabName == "FeaturesTab" then
@@ -296,9 +306,9 @@ local function CreateUpdateText(text, order)
     return Label
 end
 
-CreateUpdateText("✅ ALL FEATURES:\n\n• ESP - See all players through walls with names\n• Aimbot - Auto-aim to closest player (L key)\n• Speed Boost - Move faster\n• Infinite Jump - Jump infinitely\n• No Recoil - Remove weapon recoil\n• Wallhack - See through walls\n• Silent Aim - Hidden aimbot\n• Auto Headshot - Always aim for head\n• Fly - Fly around the map\n• Instant Respawn - Respawn immediately\n• Teleport to Enemy - TP to nearest enemy\n• Anti-Kick - Prevent kicks", 1)
+CreateUpdateText("✅ ALL FEATURES:\n\n• ESP - See all players through walls with names\n• Aimbot - Auto-aim to closest player (L key)\n• Speed Boost - Move faster\n• Infinite Jump - Jump infinitely\n• No Recoil - Remove weapon recoil\n• Wallhack - See through walls\n• Silent Aim - Hidden aimbot\n• Auto Headshot - Always aim for head\n• Fly - Fly around the map\n• NoClip - Walk through walls\n• XRay - See through all parts\n• Instant Respawn - Respawn immediately\n• Teleport to Enemy - TP to nearest enemy\n• Anti-Kick - Prevent kicks", 1)
 
-CreateUpdateText("🆕 LATEST UPDATES (v1.0.8):\n\n• Fixed ESP - now shows player names\n• ESP persists across rounds\n• Removed auto-refresh (no lag)\n• Improved ESP performance\n• Fixed fly persistence\n• Better character respawn handling\n• Smooth ESP transitions", 2)
+CreateUpdateText("🆕 LATEST UPDATES (v1.0.9):\n\n• FIXED: Speed Boost now works properly\n• NEW: NoClip - Walk through walls and objects\n• NEW: XRay - See through all map parts\n• Added keybind info display (Z key)\n• Improved speed persistence across rounds\n• Better UI layout with repositioned labels\n• All features persist across rounds\n• Performance improvements", 2)
 
 -- Variables
 local ESPEnabled = false
@@ -306,6 +316,7 @@ local ESPConnections = {}
 local AimbotEnabled = false
 local AimbotConnection = nil
 local SpeedEnabled = false
+local SpeedConnection = nil
 local OriginalSpeed = 16
 local InfiniteJumpEnabled = false
 local JumpConnection = nil
@@ -317,6 +328,10 @@ local FlyEnabled = false
 local FlyConnection = nil
 local FlyBodyVelocity = nil
 local AntiKickEnabled = false
+local NoClipEnabled = false
+local NoClipConnection = nil
+local XRayEnabled = false
+local XRayParts = {}
 
 -- Team Check Function
 local function IsEnemy(player)
@@ -331,18 +346,16 @@ local function IsEnemy(player)
     return true
 end
 
--- FIXED ESP WITH NAMES - PERSISTS ACROSS ROUNDS
+-- ESP WITH NAMES
 local function CreateESPForCharacter(player, character)
     if player == LocalPlayer then return end
     if not character then return end
     
-    -- Remove old ESP first
     local oldHighlight = character:FindFirstChild("ESPHighlight")
     local oldBillboard = character:FindFirstChild("ESPNameTag")
     if oldHighlight then oldHighlight:Destroy() end
     if oldBillboard then oldBillboard:Destroy() end
     
-    -- Create Highlight
     local highlight = Instance.new("Highlight")
     highlight.Name = "ESPHighlight"
     highlight.Adornee = character
@@ -359,7 +372,6 @@ local function CreateESPForCharacter(player, character)
     highlight.OutlineTransparency = 0
     highlight.Parent = character
     
-    -- Create Name Tag
     local head = character:FindFirstChild("Head")
     if head then
         local billboard = Instance.new("BillboardGui")
@@ -386,12 +398,10 @@ end
 local function SetupESPForPlayer(player)
     if player == LocalPlayer then return end
     
-    -- Setup for current character
     if player.Character then
         CreateESPForCharacter(player, player.Character)
     end
     
-    -- Setup for future characters
     player.CharacterAdded:Connect(function(character)
         if ESPEnabled then
             task.wait(0.5)
@@ -426,19 +436,16 @@ CreateFeatureButton(FeaturesFrame, "ESPButton", "ESP [OFF]", function()
     if ESPEnabled then
         button.Text = "ESP [ON]"
         
-        -- Setup ESP for all current players
         for _, player in pairs(Players:GetPlayers()) do
             SetupESPForPlayer(player)
         end
         
-        -- Setup ESP for new players
         ESPConnections.PlayerAdded = Players.PlayerAdded:Connect(function(player)
             if ESPEnabled then
                 SetupESPForPlayer(player)
             end
         end)
         
-        -- Cleanup when players leave
         ESPConnections.PlayerRemoving = Players.PlayerRemoving:Connect(function(player)
             if player.Character then
                 RemoveESPFromCharacter(player.Character)
@@ -533,22 +540,42 @@ CreateFeatureButton(FeaturesFrame, "AimbotButton", "Aimbot [OFF] - L key", funct
     end
 end)
 
--- Speed Boost
+-- FIXED SPEED BOOST
+local function EnableSpeed()
+    if SpeedConnection then
+        SpeedConnection:Disconnect()
+    end
+    
+    SpeedConnection = RunService.Heartbeat:Connect(function()
+        if not SpeedEnabled then return end
+        
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid.WalkSpeed = 50
+        end
+    end)
+end
+
+local function DisableSpeed()
+    if SpeedConnection then
+        SpeedConnection:Disconnect()
+        SpeedConnection = nil
+    end
+    
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = 16
+    end
+end
+
 CreateFeatureButton(FeaturesFrame, "SpeedButton", "Speed Boost [OFF]", function()
     SpeedEnabled = not SpeedEnabled
     local button = FeaturesFrame:FindFirstChild("SpeedButton")
     
     if SpeedEnabled then
         button.Text = "Speed Boost [ON]"
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-            OriginalSpeed = LocalPlayer.Character.Humanoid.WalkSpeed
-            LocalPlayer.Character.Humanoid.WalkSpeed = 50
-        end
+        EnableSpeed()
     else
         button.Text = "Speed Boost [OFF]"
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-            LocalPlayer.Character.Humanoid.WalkSpeed = OriginalSpeed
-        end
+        DisableSpeed()
     end
 end)
 
@@ -605,7 +632,7 @@ CreateFeatureButton(FeaturesFrame, "HeadshotButton", "Auto Headshot [OFF]", func
     button.Text = AutoHeadshotEnabled and "Auto Headshot [ON]" or "Auto Headshot [OFF]"
 end)
 
--- FIXED FLY - PERSISTS ACROSS ROUNDS
+-- FLY
 local function EnableFly()
     if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         return
@@ -698,6 +725,90 @@ CreateFeatureButton(FeaturesFrame, "FlyButton", "Fly [OFF]", function()
     end
 end)
 
+-- NOCLIP
+local function EnableNoClip()
+    if NoClipConnection then
+        NoClipConnection:Disconnect()
+    end
+    
+    NoClipConnection = RunService.Stepped:Connect(function()
+        if not NoClipEnabled then return end
+        
+        if LocalPlayer.Character then
+            for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end)
+end
+
+local function DisableNoClip()
+    if NoClipConnection then
+        NoClipConnection:Disconnect()
+        NoClipConnection = nil
+    end
+    
+    if LocalPlayer.Character then
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+            end
+        end
+    end
+end
+
+CreateFeatureButton(FeaturesFrame, "NoClipButton", "NoClip [OFF]", function()
+    NoClipEnabled = not NoClipEnabled
+    local button = FeaturesFrame:FindFirstChild("NoClipButton")
+    button.Text = NoClipEnabled and "NoClip [ON]" or "NoClip [OFF]"
+    
+    if NoClipEnabled then
+        EnableNoClip()
+    else
+        DisableNoClip()
+    end
+end)
+
+-- XRAY
+local function EnableXRay()
+    XRayParts = {}
+    
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Transparency < 1 then
+            if not obj.Parent:FindFirstChild("Humanoid") then
+                table.insert(XRayParts, {
+                    Part = obj,
+                    OriginalTransparency = obj.Transparency
+                })
+                obj.Transparency = 0.7
+            end
+        end
+    end
+end
+
+local function DisableXRay()
+    for _, data in pairs(XRayParts) do
+        if data.Part then
+            data.Part.Transparency = data.OriginalTransparency
+        end
+    end
+    XRayParts = {}
+end
+
+CreateFeatureButton(FeaturesFrame, "XRayButton", "XRay [OFF]", function()
+    XRayEnabled = not XRayEnabled
+    local button = FeaturesFrame:FindFirstChild("XRayButton")
+    button.Text = XRayEnabled and "XRay [ON]" or "XRay [OFF]"
+    
+    if XRayEnabled then
+        EnableXRay()
+    else
+        DisableXRay()
+    end
+end)
+
 -- Instant Respawn
 CreateFeatureButton(FeaturesFrame, "RespawnButton", "Instant Respawn", function()
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
@@ -773,28 +884,30 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- Character Respawn Handler - KEEPS FEATURES ACROSS ROUNDS
+-- Character Respawn Handler
 LocalPlayer.CharacterAdded:Connect(function(char)
     task.wait(0.5)
     
-    -- Keep Speed
     if SpeedEnabled then
-        char:WaitForChild("Humanoid").WalkSpeed = 50
+        task.wait(0.5)
+        EnableSpeed()
     end
     
-    -- Keep Fly
     if FlyEnabled then
         task.wait(1)
         EnableFly()
     end
     
-    -- Keep Aimbot
     if AimbotEnabled then
         task.wait(0.5)
         EnableAimbot()
     end
     
-    -- Keep ESP for this character
+    if NoClipEnabled then
+        task.wait(0.5)
+        EnableNoClip()
+    end
+    
     if ESPEnabled then
         task.wait(0.5)
         for _, player in pairs(Players:GetPlayers()) do
@@ -808,7 +921,6 @@ end)
 -- Start with Updates tab
 SwitchTab("UpdatesTab")
 
-print("✅ Leliks Rivals Script v1.0.8 loaded successfully!")
+print("✅ Leliks Rivals Script v1.0.9 loaded successfully!")
 print("🔑 Z key = Toggle GUI")
 print("🎯 L key = Toggle Aimbot")
-print("👁️ ESP with names - persists across rounds!")
