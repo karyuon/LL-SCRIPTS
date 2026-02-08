@@ -1,4 +1,4 @@
--- Leliks Rivals Script v1.1.2
+-- Leliks Rivals Script v1.1.3
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -54,6 +54,7 @@ end
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
 local UICorner = Instance.new("UICorner")
+local UIStroke = Instance.new("UIStroke")
 local TitleLabel = Instance.new("TextLabel")
 local VersionLabel = Instance.new("TextLabel")
 local KeybindLabel = Instance.new("TextLabel")
@@ -87,6 +88,11 @@ MainFrame.Visible = true
 UICorner.CornerRadius = UDim.new(0, 12)
 UICorner.Parent = MainFrame
 
+-- Blue Border Stroke
+UIStroke.Color = Color3.fromRGB(70, 130, 255)
+UIStroke.Thickness = 3
+UIStroke.Parent = MainFrame
+
 -- Title
 TitleLabel.Name = "TitleLabel"
 TitleLabel.Parent = MainFrame
@@ -105,7 +111,7 @@ VersionLabel.BackgroundTransparency = 1
 VersionLabel.Position = UDim2.new(0, 10, 1, -30)
 VersionLabel.Size = UDim2.new(0, 70, 0, 20)
 VersionLabel.Font = Enum.Font.GothamBold
-VersionLabel.Text = "v1.1.2"
+VersionLabel.Text = "v1.1.3"
 VersionLabel.TextColor3 = Color3.fromRGB(100, 100, 100)
 VersionLabel.TextSize = 14
 VersionLabel.TextTransparency = 0.3
@@ -437,7 +443,7 @@ end
 
 CreateUpdateText("✅ ALL FEATURES:\n\n• ESP - See all players through walls with names\n• Aimbot - Camera auto-aim to closest enemy head\n• Silent Aim - Camera auto-aim to enemy body (stealthier)\n• Auto Shot - Automatically shoots when enemy detected\n• Speed Boost - Move faster\n• Infinite Jump - Jump infinitely\n• No Recoil - Remove weapon recoil\n• Wallhack - See through walls\n• Fly - Fly around the map\n• NoClip - Walk through walls\n• XRay - See through all parts\n• FOV Changer - Adjust camera FOV (20-150)\n• Instant Respawn - Respawn immediately\n• Teleport to Enemy - TP to nearest enemy\n• Anti-Kick - Prevent kicks", 1)
 
-CreateUpdateText("🆕 LATEST UPDATES (v1.1.2):\n\n• IMPROVED: Silent Aim now aims camera at enemy body (like Aimbot)\n• Silent Aim targets torso instead of head for body shots\n• Both Aimbot and Silent Aim work via camera\n• Aimbot = Head aim, Silent Aim = Body aim\n• Auto Shot works with both aim modes\n• All combat features optimized", 2)
+CreateUpdateText("🆕 LATEST UPDATES (v1.1.3):\n\n• FIXED: FOV now saves properly and doesn't reset\n• NEW: Blue border around main GUI\n• Cleaned console output\n• Improved FOV persistence\n• Better settings save system", 2)
 
 -- Variables
 local ESPEnabled = false
@@ -462,7 +468,7 @@ local NoClipEnabled = false
 local NoClipConnection = nil
 local XRayEnabled = false
 local XRayParts = {}
-local OriginalFOV = workspace.CurrentCamera.FieldOfView
+local FOVConnection = nil
 
 -- Team Check Function
 local function IsEnemy(player)
@@ -1031,7 +1037,7 @@ CreateFeatureButton(FeaturesFrame, "XRayButton", "XRay [OFF]", function()
     end
 end, false, nil)
 
--- FOV CHANGER
+-- FOV CHANGER WITH PERSISTENT KEEPER
 local function CreateFOVSlider()
     local SliderFrame = Instance.new("Frame")
     SliderFrame.Name = "FOVSlider"
@@ -1116,7 +1122,19 @@ local function CreateFOVSlider()
         end
     end)
     
+    -- Apply saved FOV on load
     workspace.CurrentCamera.FieldOfView = SavedSettings.FOV
+    
+    -- Keep FOV persistent
+    if FOVConnection then
+        FOVConnection:Disconnect()
+    end
+    
+    FOVConnection = RunService.Heartbeat:Connect(function()
+        if workspace.CurrentCamera.FieldOfView ~= SavedSettings.FOV then
+            workspace.CurrentCamera.FieldOfView = SavedSettings.FOV
+        end
+    end)
 end
 
 CreateFOVSlider()
@@ -1183,7 +1201,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         MainFrame.Visible = not MainFrame.Visible
     end
     
-    -- Custom Keybinds
     if input.KeyCode == SavedSettings.Keybinds.Aimbot then
         AimbotEnabled = not AimbotEnabled
         local button = FeaturesFrame:FindFirstChild("AimbotButton")
@@ -1304,11 +1321,12 @@ LocalPlayer.CharacterAdded:Connect(function(char)
         end
     end
     
+    -- Reapply FOV
     workspace.CurrentCamera.FieldOfView = SavedSettings.FOV
 end)
 
 -- Start with Updates tab
 SwitchTab("UpdatesTab")
 
-print("✅ Leliks Rivals Script v1.1.2 loaded successfully!")
-print("🔑 Z key = Toggle GUI")
+print("✅ Leliks Rivals Script v1.1.3 loaded!")
+print("🔑 Press Z to open GUI")
