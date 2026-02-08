@@ -1,4 +1,6 @@
--- Leliks Rivals Script v1.1.3
+-- Leliks Rivals Script v1.1.5
+-- Modern GUI for Roblox Rivals
+-- Z key = Toggle GUI
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -11,7 +13,8 @@ local SavedSettings = {
         Fly = Enum.KeyCode.F,
         ESP = Enum.KeyCode.E,
         Aimbot = Enum.KeyCode.L,
-        NoClip = Enum.KeyCode.N
+        NoClip = Enum.KeyCode.N,
+        AutoShot = Enum.KeyCode.U
     },
     FOV = 70
 }
@@ -25,6 +28,7 @@ pcall(function()
             SavedSettings.Keybinds.ESP = Enum.KeyCode[loaded.Keybinds.ESP]
             SavedSettings.Keybinds.Aimbot = Enum.KeyCode[loaded.Keybinds.Aimbot]
             SavedSettings.Keybinds.NoClip = Enum.KeyCode[loaded.Keybinds.NoClip]
+            SavedSettings.Keybinds.AutoShot = Enum.KeyCode[loaded.Keybinds.AutoShot] or Enum.KeyCode.U
         end
         if loaded.FOV then
             SavedSettings.FOV = loaded.FOV
@@ -41,7 +45,8 @@ local function SaveSettings()
                     Fly = tostring(SavedSettings.Keybinds.Fly):gsub("Enum.KeyCode.", ""),
                     ESP = tostring(SavedSettings.Keybinds.ESP):gsub("Enum.KeyCode.", ""),
                     Aimbot = tostring(SavedSettings.Keybinds.Aimbot):gsub("Enum.KeyCode.", ""),
-                    NoClip = tostring(SavedSettings.Keybinds.NoClip):gsub("Enum.KeyCode.", "")
+                    NoClip = tostring(SavedSettings.Keybinds.NoClip):gsub("Enum.KeyCode.", ""),
+                    AutoShot = tostring(SavedSettings.Keybinds.AutoShot):gsub("Enum.KeyCode.", "")
                 },
                 FOV = SavedSettings.FOV
             }
@@ -111,7 +116,7 @@ VersionLabel.BackgroundTransparency = 1
 VersionLabel.Position = UDim2.new(0, 10, 1, -30)
 VersionLabel.Size = UDim2.new(0, 70, 0, 20)
 VersionLabel.Font = Enum.Font.GothamBold
-VersionLabel.Text = "v1.1.3"
+VersionLabel.Text = "v1.1.5"
 VersionLabel.TextColor3 = Color3.fromRGB(100, 100, 100)
 VersionLabel.TextSize = 14
 VersionLabel.TextTransparency = 0.3
@@ -362,6 +367,18 @@ FeaturesFrame.ScrollBarImageColor3 = Color3.fromRGB(70, 130, 255)
 FeaturesFrame.BorderSizePixel = 0
 FeaturesFrame.Visible = false
 
+local InfoFrame = Instance.new("ScrollingFrame")
+InfoFrame.Name = "InfoFrame"
+InfoFrame.Parent = ContentFrame
+InfoFrame.BackgroundTransparency = 1
+InfoFrame.Position = UDim2.new(0, 10, 0, 10)
+InfoFrame.Size = UDim2.new(1, -20, 1, -20)
+InfoFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+InfoFrame.ScrollBarThickness = 6
+InfoFrame.ScrollBarImageColor3 = Color3.fromRGB(70, 130, 255)
+InfoFrame.BorderSizePixel = 0
+InfoFrame.Visible = false
+
 local UpdatesList = Instance.new("UIListLayout")
 UpdatesList.Parent = UpdatesFrame
 UpdatesList.SortOrder = Enum.SortOrder.LayoutOrder
@@ -372,12 +389,18 @@ FeaturesList.Parent = FeaturesFrame
 FeaturesList.SortOrder = Enum.SortOrder.LayoutOrder
 FeaturesList.Padding = UDim.new(0, 10)
 
+local InfoList = Instance.new("UIListLayout")
+InfoList.Parent = InfoFrame
+InfoList.SortOrder = Enum.SortOrder.LayoutOrder
+InfoList.Padding = UDim.new(0, 10)
+
 -- Tab Switching Function
 local function SwitchTab(tabName)
     currentTab = tabName
     
     UpdatesFrame.Visible = false
     FeaturesFrame.Visible = false
+    InfoFrame.Visible = false
     
     for _, child in pairs(Sidebar:GetChildren()) do
         if child:IsA("TextButton") then
@@ -395,12 +418,15 @@ local function SwitchTab(tabName)
         UpdatesFrame.Visible = true
     elseif tabName == "FeaturesTab" then
         FeaturesFrame.Visible = true
+    elseif tabName == "InfoTab" then
+        InfoFrame.Visible = true
     end
 end
 
 -- Create Tab Buttons
 local UpdatesTab = CreateTabButton("UpdatesTab", "Updates", 1)
 local FeaturesTab = CreateTabButton("FeaturesTab", "Features", 2)
+local InfoTab = CreateTabButton("InfoTab", "Info", 3)
 
 UpdatesTab.MouseButton1Click:Connect(function()
     SwitchTab("UpdatesTab")
@@ -408,6 +434,10 @@ end)
 
 FeaturesTab.MouseButton1Click:Connect(function()
     SwitchTab("FeaturesTab")
+end)
+
+InfoTab.MouseButton1Click:Connect(function()
+    SwitchTab("InfoTab")
 end)
 
 -- Create Updates Content
@@ -441,19 +471,55 @@ local function CreateUpdateText(text, order)
     return Label
 end
 
-CreateUpdateText("✅ ALL FEATURES:\n\n• ESP - See all players through walls with names\n• Aimbot - Camera auto-aim to closest enemy head\n• Silent Aim - Camera auto-aim to enemy body (stealthier)\n• Auto Shot - Automatically shoots when enemy detected\n• Speed Boost - Move faster\n• Infinite Jump - Jump infinitely\n• No Recoil - Remove weapon recoil\n• Wallhack - See through walls\n• Fly - Fly around the map\n• NoClip - Walk through walls\n• XRay - See through all parts\n• FOV Changer - Adjust camera FOV (20-150)\n• Instant Respawn - Respawn immediately\n• Teleport to Enemy - TP to nearest enemy\n• Anti-Kick - Prevent kicks", 1)
+-- Create Info Content
+local function CreateInfoText(text, order, isBold, isLarge)
+    local Label = Instance.new("TextLabel")
+    Label.Parent = InfoFrame
+    Label.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    Label.Size = UDim2.new(1, 0, 0, 0)
+    Label.Font = isBold and Enum.Font.GothamBold or Enum.Font.Gotham
+    Label.Text = text
+    Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Label.TextSize = isLarge and 20 or 14
+    Label.TextTransparency = (not isBold and not isLarge) and 0.3 or 0
+    Label.TextWrapped = true
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.TextYAlignment = Enum.TextYAlignment.Top
+    Label.BorderSizePixel = 0
+    Label.LayoutOrder = order
+    Label.AutomaticSize = Enum.AutomaticSize.Y
+    
+    local Padding = Instance.new("UIPadding")
+    Padding.Parent = Label
+    Padding.PaddingLeft = UDim.new(0, 10)
+    Padding.PaddingRight = UDim.new(0, 10)
+    Padding.PaddingTop = UDim.new(0, 10)
+    Padding.PaddingBottom = UDim.new(0, 10)
+    
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 8)
+    Corner.Parent = Label
+    
+    return Label
+end
 
-CreateUpdateText("🆕 LATEST UPDATES (v1.1.3):\n\n• FIXED: FOV now saves properly and doesn't reset\n• NEW: Blue border around main GUI\n• Cleaned console output\n• Improved FOV persistence\n• Better settings save system", 2)
+CreateUpdateText("🆕 LATEST UPDATES (v1.1.5 - BIG UPDATE!):\n\n• NEW: Auto Shot keybind (default U key)\n• NEW: ESP Skeleton - See enemy bone structure\n• NEW: ESP Health Bar - Green health bar above names\n• FIXED: Silent Aim now rotates character properly (not just camera)\n• IMPROVED: Features reordered - most important at top\n• NEW: Info tab with script credits\n• Better visual clarity and performance", 1)
+
+CreateInfoText("SCRIPT CREATOR: LELIKS", 1, true, true)
+CreateInfoText("Discord: LeliksW", 2, false, false)
+CreateInfoText("\n📋 GENERAL INFORMATION:\n\n• This script is designed for Roblox Rivals\n• All features work in 1v1 and team matches\n• Keybinds are customizable and save automatically\n• Press Z to toggle GUI visibility\n• Features persist across rounds and respawns\n• Blue border indicates active GUI\n• Settings save to file automatically\n\n⚠️ USE RESPONSIBLY:\n\n• This is a cheat/exploit script\n• May result in game bans\n• Use at your own risk\n• Recommended for private servers or testing\n\n🔥 BEST FEATURES:\n\n• ESP with skeleton and health bars\n• Silent Aim with character rotation\n• Auto Shot with wall detection\n• Customizable keybinds for all major features\n• FOV changer (20-150)\n• Fly and NoClip for movement", 3, false, false)
 
 -- Variables
 local ESPEnabled = false
 local ESPConnections = {}
+local ESPSkeletonLines = {}
 local AimbotEnabled = false
 local AimbotConnection = nil
 local SilentAimEnabled = false
 local SilentAimConnection = nil
 local AutoShotEnabled = false
 local AutoShotConnection = nil
+local lastShotTime = 0
 local SpeedEnabled = false
 local SpeedConnection = nil
 local InfiniteJumpEnabled = false
@@ -483,15 +549,65 @@ local function IsEnemy(player)
     return true
 end
 
--- ESP WITH NAMES
+-- Wall Detection Function
+local function IsWallInFront()
+    if not LocalPlayer.Character then return true end
+    local head = LocalPlayer.Character:FindFirstChild("Head")
+    if not head then return true end
+    
+    local camera = workspace.CurrentCamera
+    if not camera then return true end
+    
+    local origin = head.Position
+    local direction = camera.CFrame.LookVector * 10
+    
+    local rayParams = RaycastParams.new()
+    rayParams.FilterDescendantsInstances = {LocalPlayer.Character}
+    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+    
+    local rayResult = workspace:Raycast(origin, direction, rayParams)
+    
+    if rayResult then
+        local hitPart = rayResult.Instance
+        if hitPart and hitPart:IsA("BasePart") then
+            if rayResult.Distance < 5 then
+                return true
+            end
+        end
+    end
+    
+    return false
+end
+
+-- ESP Skeleton Joints
+local skeletonJoints = {
+    {"Head", "UpperTorso"},
+    {"UpperTorso", "LowerTorso"},
+    {"UpperTorso", "LeftUpperArm"},
+    {"LeftUpperArm", "LeftLowerArm"},
+    {"LeftLowerArm", "LeftHand"},
+    {"UpperTorso", "RightUpperArm"},
+    {"RightUpperArm", "RightLowerArm"},
+    {"RightLowerArm", "RightHand"},
+    {"LowerTorso", "LeftUpperLeg"},
+    {"LeftUpperLeg", "LeftLowerLeg"},
+    {"LeftLowerLeg", "LeftFoot"},
+    {"LowerTorso", "RightUpperLeg"},
+    {"RightUpperLeg", "RightLowerLeg"},
+    {"RightLowerLeg", "RightFoot"}
+}
+
+-- ESP WITH SKELETON AND HEALTH BAR
 local function CreateESPForCharacter(player, character)
     if player == LocalPlayer then return end
     if not character then return end
     
     local oldHighlight = character:FindFirstChild("ESPHighlight")
     local oldBillboard = character:FindFirstChild("ESPNameTag")
+    local oldFolder = character:FindFirstChild("ESPSkeleton")
     if oldHighlight then oldHighlight:Destroy() end
     if oldBillboard then oldBillboard:Destroy() end
+    if oldFolder then oldFolder:Destroy() end
     
     local highlight = Instance.new("Highlight")
     highlight.Name = "ESPHighlight"
@@ -509,19 +625,79 @@ local function CreateESPForCharacter(player, character)
     highlight.OutlineTransparency = 0
     highlight.Parent = character
     
+    -- Skeleton
+    local skeletonFolder = Instance.new("Folder")
+    skeletonFolder.Name = "ESPSkeleton"
+    skeletonFolder.Parent = character
+    
+    for _, joint in pairs(skeletonJoints) do
+        local part1 = character:FindFirstChild(joint[1])
+        local part2 = character:FindFirstChild(joint[2])
+        
+        if part1 and part2 then
+            local line = Instance.new("Beam")
+            local att0 = Instance.new("Attachment")
+            local att1 = Instance.new("Attachment")
+            
+            att0.Parent = part1
+            att1.Parent = part2
+            
+            line.Attachment0 = att0
+            line.Attachment1 = att1
+            line.Color = ColorSequence.new(IsEnemy(player) and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(0, 255, 0))
+            line.Width0 = 0.1
+            line.Width1 = 0.1
+            line.FaceCamera = true
+            line.Parent = skeletonFolder
+        end
+    end
+    
+    -- Name + Health Bar
     local head = character:FindFirstChild("Head")
-    if head then
+    local humanoid = character:FindFirstChild("Humanoid")
+    if head and humanoid then
         local billboard = Instance.new("BillboardGui")
         billboard.Name = "ESPNameTag"
         billboard.Adornee = head
-        billboard.Size = UDim2.new(0, 200, 0, 50)
+        billboard.Size = UDim2.new(0, 200, 0, 70)
         billboard.StudsOffset = Vector3.new(0, 3, 0)
         billboard.AlwaysOnTop = true
         billboard.Parent = character
         
+        -- Health Bar Background
+        local healthBG = Instance.new("Frame")
+        healthBG.Parent = billboard
+        healthBG.Size = UDim2.new(0.8, 0, 0, 8)
+        healthBG.Position = UDim2.new(0.1, 0, 0, 0)
+        healthBG.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        healthBG.BorderSizePixel = 0
+        
+        local healthCorner = Instance.new("UICorner")
+        healthCorner.CornerRadius = UDim.new(0, 4)
+        healthCorner.Parent = healthBG
+        
+        -- Health Bar Fill
+        local healthFill = Instance.new("Frame")
+        healthFill.Name = "HealthFill"
+        healthFill.Parent = healthBG
+        healthFill.Size = UDim2.new(humanoid.Health / humanoid.MaxHealth, 0, 1, 0)
+        healthFill.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+        healthFill.BorderSizePixel = 0
+        
+        local fillCorner = Instance.new("UICorner")
+        fillCorner.CornerRadius = UDim.new(0, 4)
+        fillCorner.Parent = healthFill
+        
+        -- Update health bar
+        humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+            healthFill.Size = UDim2.new(math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1), 0, 1, 0)
+        end)
+        
+        -- Name Label
         local nameLabel = Instance.new("TextLabel")
         nameLabel.Parent = billboard
-        nameLabel.Size = UDim2.new(1, 0, 1, 0)
+        nameLabel.Size = UDim2.new(1, 0, 0, 40)
+        nameLabel.Position = UDim2.new(0, 0, 0, 15)
         nameLabel.BackgroundTransparency = 1
         nameLabel.Text = player.Name
         nameLabel.Font = Enum.Font.GothamBold
@@ -552,9 +728,11 @@ local function RemoveESPFromCharacter(character)
     
     local highlight = character:FindFirstChild("ESPHighlight")
     local billboard = character:FindFirstChild("ESPNameTag")
+    local skeleton = character:FindFirstChild("ESPSkeleton")
     
     if highlight then highlight:Destroy() end
     if billboard then billboard:Destroy() end
+    if skeleton then skeleton:Destroy() end
 end
 
 local function RemoveAllESP()
@@ -565,7 +743,7 @@ local function RemoveAllESP()
     end
 end
 
--- ESP Button
+-- ESP Button (First!)
 CreateFeatureButton(FeaturesFrame, "ESPButton", "ESP [OFF]", function()
     ESPEnabled = not ESPEnabled
     local button = FeaturesFrame:FindFirstChild("ESPButton")
@@ -600,7 +778,7 @@ CreateFeatureButton(FeaturesFrame, "ESPButton", "ESP [OFF]", function()
             ESPConnections.PlayerRemoving:Disconnect()
         end
     end
-end, true, nil)
+end, true, nil).LayoutOrder = 1
 
 -- Get Closest Enemy Function
 local function GetClosestEnemy()
@@ -675,9 +853,9 @@ CreateFeatureButton(FeaturesFrame, "AimbotButton", "Aimbot [OFF]", function()
         mainText.Text = "Aimbot [OFF]"
         DisableAimbot()
     end
-end, true, "Recommended for 1v1 matches")
+end, true, "Recommended for 1v1 matches").LayoutOrder = 2
 
--- Silent Aim Function (Camera aims at BODY)
+-- FIXED Silent Aim (Camera + Character rotation)
 local function EnableSilentAim()
     if SilentAimConnection then
         SilentAimConnection:Disconnect()
@@ -687,7 +865,8 @@ local function EnableSilentAim()
         if not SilentAimEnabled then return end
         
         if not LocalPlayer.Character then return end
-        if not LocalPlayer.Character:FindFirstChild("Head") then return end
+        local humanoidRootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not humanoidRootPart then return end
         
         local target = GetClosestEnemy()
         
@@ -695,10 +874,15 @@ local function EnableSilentAim()
             local targetTorso = target.Character:FindFirstChild("Torso") or target.Character:FindFirstChild("UpperTorso")
             
             if targetTorso then
+                -- Rotate camera
                 local camera = workspace.CurrentCamera
                 if camera then
                     camera.CFrame = CFrame.new(camera.CFrame.Position, targetTorso.Position)
                 end
+                
+                -- Rotate character
+                local lookAtPos = Vector3.new(targetTorso.Position.X, humanoidRootPart.Position.Y, targetTorso.Position.Z)
+                humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position, lookAtPos)
             end
         end
     end)
@@ -724,29 +908,37 @@ CreateFeatureButton(FeaturesFrame, "SilentAimButton", "Silent Aim [OFF]", functi
         mainText.Text = "Silent Aim [OFF]"
         DisableSilentAim()
     end
-end, false, "Recommended for 1v1 matches")
+end, false, "Recommended for 1v1 matches").LayoutOrder = 3
 
--- Auto Shot Function
+-- AUTO SHOT WITH WALL DETECTION + KEYBIND
 local function EnableAutoShot()
     if AutoShotConnection then
         AutoShotConnection:Disconnect()
     end
     
+    lastShotTime = 0
+    
     AutoShotConnection = RunService.Heartbeat:Connect(function()
         if not AutoShotEnabled then return end
         
-        local target = GetClosestEnemy()
+        if not AimbotEnabled and not SilentAimEnabled then return end
         
-        if target and target.Character then
-            local targetTorso = target.Character:FindFirstChild("Torso") or target.Character:FindFirstChild("UpperTorso")
+        if IsWallInFront() then return end
+        
+        local currentTime = tick()
+        
+        if currentTime - lastShotTime >= 0.4 then
+            local target = GetClosestEnemy()
             
-            if targetTorso and LocalPlayer.Character then
-                local distance = (targetTorso.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+            if target and target.Character then
+                local targetPart = target.Character:FindFirstChild("Head") or target.Character:FindFirstChild("Torso") or target.Character:FindFirstChild("UpperTorso")
                 
-                if distance < 200 then
+                if targetPart and LocalPlayer.Character then
                     mouse1press()
                     task.wait(0.05)
                     mouse1release()
+                    
+                    lastShotTime = currentTime
                 end
             end
         end
@@ -773,7 +965,7 @@ CreateFeatureButton(FeaturesFrame, "AutoShotButton", "Auto Shot [OFF]", function
         mainText.Text = "Auto Shot [OFF]"
         DisableAutoShot()
     end
-end, false, "Recommended for 1v1 matches")
+end, true, "Recommended for 1v1 matches").LayoutOrder = 4
 
 -- Speed Boost
 local function EnableSpeed()
@@ -813,49 +1005,7 @@ CreateFeatureButton(FeaturesFrame, "SpeedButton", "Speed Boost [OFF]", function(
         mainText.Text = "Speed Boost [OFF]"
         DisableSpeed()
     end
-end, false, nil)
-
--- Infinite Jump
-CreateFeatureButton(FeaturesFrame, "JumpButton", "Infinite Jump [OFF]", function()
-    InfiniteJumpEnabled = not InfiniteJumpEnabled
-    local button = FeaturesFrame:FindFirstChild("JumpButton")
-    local mainText = button:FindFirstChild("MainText")
-    mainText.Text = InfiniteJumpEnabled and "Infinite Jump [ON]" or "Infinite Jump [OFF]"
-    
-    if InfiniteJumpEnabled then
-        JumpConnection = UserInputService.JumpRequest:Connect(function()
-            if InfiniteJumpEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-                LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
-            end
-        end)
-    else
-        if JumpConnection then
-            JumpConnection:Disconnect()
-        end
-    end
-end, false, nil)
-
--- No Recoil
-CreateFeatureButton(FeaturesFrame, "RecoilButton", "No Recoil [OFF]", function()
-    NoRecoilEnabled = not NoRecoilEnabled
-    local button = FeaturesFrame:FindFirstChild("RecoilButton")
-    local mainText = button:FindFirstChild("MainText")
-    mainText.Text = NoRecoilEnabled and "No Recoil [ON]" or "No Recoil [OFF]"
-end, false, nil)
-
--- Wallhack
-CreateFeatureButton(FeaturesFrame, "WallhackButton", "Wallhack [OFF]", function()
-    WallhackEnabled = not WallhackEnabled
-    local button = FeaturesFrame:FindFirstChild("WallhackButton")
-    local mainText = button:FindFirstChild("MainText")
-    mainText.Text = WallhackEnabled and "Wallhack [ON]" or "Wallhack [OFF]"
-    
-    for _, part in pairs(workspace:GetDescendants()) do
-        if part:IsA("BasePart") and (part.Name == "Wall" or part.Name == "wall") then
-            part.Transparency = WallhackEnabled and 0.7 or 0
-        end
-    end
-end, false, nil)
+end, false, nil).LayoutOrder = 5
 
 -- FLY
 local function EnableFly()
@@ -949,7 +1099,7 @@ CreateFeatureButton(FeaturesFrame, "FlyButton", "Fly [OFF]", function()
     else
         DisableFly()
     end
-end, true, nil)
+end, true, nil).LayoutOrder = 6
 
 -- NoClip
 local function EnableNoClip()
@@ -996,7 +1146,27 @@ CreateFeatureButton(FeaturesFrame, "NoClipButton", "NoClip [OFF]", function()
     else
         DisableNoClip()
     end
-end, true, nil)
+end, true, nil).LayoutOrder = 7
+
+-- Infinite Jump
+CreateFeatureButton(FeaturesFrame, "JumpButton", "Infinite Jump [OFF]", function()
+    InfiniteJumpEnabled = not InfiniteJumpEnabled
+    local button = FeaturesFrame:FindFirstChild("JumpButton")
+    local mainText = button:FindFirstChild("MainText")
+    mainText.Text = InfiniteJumpEnabled and "Infinite Jump [ON]" or "Infinite Jump [OFF]"
+    
+    if InfiniteJumpEnabled then
+        JumpConnection = UserInputService.JumpRequest:Connect(function()
+            if InfiniteJumpEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+                LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+            end
+        end)
+    else
+        if JumpConnection then
+            JumpConnection:Disconnect()
+        end
+    end
+end, false, nil).LayoutOrder = 8
 
 -- XRay
 local function EnableXRay()
@@ -1035,9 +1205,74 @@ CreateFeatureButton(FeaturesFrame, "XRayButton", "XRay [OFF]", function()
     else
         DisableXRay()
     end
-end, false, nil)
+end, false, nil).LayoutOrder = 9
 
--- FOV CHANGER WITH PERSISTENT KEEPER
+-- No Recoil
+CreateFeatureButton(FeaturesFrame, "RecoilButton", "No Recoil [OFF]", function()
+    NoRecoilEnabled = not NoRecoilEnabled
+    local button = FeaturesFrame:FindFirstChild("RecoilButton")
+    local mainText = button:FindFirstChild("MainText")
+    mainText.Text = NoRecoilEnabled and "No Recoil [ON]" or "No Recoil [OFF]"
+end, false, nil).LayoutOrder = 10
+
+-- Wallhack
+CreateFeatureButton(FeaturesFrame, "WallhackButton", "Wallhack [OFF]", function()
+    WallhackEnabled = not WallhackEnabled
+    local button = FeaturesFrame:FindFirstChild("WallhackButton")
+    local mainText = button:FindFirstChild("MainText")
+    mainText.Text = WallhackEnabled and "Wallhack [ON]" or "Wallhack [OFF]"
+    
+    for _, part in pairs(workspace:GetDescendants()) do
+        if part:IsA("BasePart") and (part.Name == "Wall" or part.Name == "wall") then
+            part.Transparency = WallhackEnabled and 0.7 or 0
+        end
+    end
+end, false, nil).LayoutOrder = 11
+
+-- Instant Respawn
+CreateFeatureButton(FeaturesFrame, "RespawnButton", "Instant Respawn", function()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.Health = 0
+    end
+end, false, nil).LayoutOrder = 12
+
+-- Teleport to Enemy
+CreateFeatureButton(FeaturesFrame, "TeleportButton", "Teleport to Enemy", function()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and IsEnemy(player) and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+                break
+            end
+        end
+    end
+end, false, nil).LayoutOrder = 13
+
+-- Anti-Kick
+CreateFeatureButton(FeaturesFrame, "AntiKickButton", "Anti-Kick [OFF]", function()
+    AntiKickEnabled = not AntiKickEnabled
+    local button = FeaturesFrame:FindFirstChild("AntiKickButton")
+    local mainText = button:FindFirstChild("MainText")
+    mainText.Text = AntiKickEnabled and "Anti-Kick [ON]" or "Anti-Kick [OFF]"
+    
+    if AntiKickEnabled then
+        pcall(function()
+            local mt = getrawmetatable(game)
+            local old = mt.__namecall
+            setreadonly(mt, false)
+            mt.__namecall = newcclosure(function(self, ...)
+                local method = getnamecallmethod()
+                if method == "Kick" then
+                    return
+                end
+                return old(self, ...)
+            end)
+            setreadonly(mt, true)
+        end)
+    end
+end, false, nil).LayoutOrder = 14
+
+-- FOV CHANGER (LAST!)
 local function CreateFOVSlider()
     local SliderFrame = Instance.new("Frame")
     SliderFrame.Name = "FOVSlider"
@@ -1045,6 +1280,7 @@ local function CreateFOVSlider()
     SliderFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     SliderFrame.Size = UDim2.new(1, 0, 0, 60)
     SliderFrame.BorderSizePixel = 0
+    SliderFrame.LayoutOrder = 999
     
     local SliderCorner = Instance.new("UICorner")
     SliderCorner.CornerRadius = UDim.new(0, 8)
@@ -1122,10 +1358,8 @@ local function CreateFOVSlider()
         end
     end)
     
-    -- Apply saved FOV on load
     workspace.CurrentCamera.FieldOfView = SavedSettings.FOV
     
-    -- Keep FOV persistent
     if FOVConnection then
         FOVConnection:Disconnect()
     end
@@ -1139,49 +1373,6 @@ end
 
 CreateFOVSlider()
 
--- Instant Respawn
-CreateFeatureButton(FeaturesFrame, "RespawnButton", "Instant Respawn", function()
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid.Health = 0
-    end
-end, false, nil)
-
--- Teleport to Enemy
-CreateFeatureButton(FeaturesFrame, "TeleportButton", "Teleport to Enemy", function()
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and IsEnemy(player) and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                LocalPlayer.Character.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
-                break
-            end
-        end
-    end
-end, false, nil)
-
--- Anti-Kick
-CreateFeatureButton(FeaturesFrame, "AntiKickButton", "Anti-Kick [OFF]", function()
-    AntiKickEnabled = not AntiKickEnabled
-    local button = FeaturesFrame:FindFirstChild("AntiKickButton")
-    local mainText = button:FindFirstChild("MainText")
-    mainText.Text = AntiKickEnabled and "Anti-Kick [ON]" or "Anti-Kick [OFF]"
-    
-    if AntiKickEnabled then
-        pcall(function()
-            local mt = getrawmetatable(game)
-            local old = mt.__namecall
-            setreadonly(mt, false)
-            mt.__namecall = newcclosure(function(self, ...)
-                local method = getnamecallmethod()
-                if method == "Kick" then
-                    return
-                end
-                return old(self, ...)
-            end)
-            setreadonly(mt, true)
-        end)
-    end
-end, false, nil)
-
 -- Update Canvas Sizes
 UpdatesFrame.CanvasSize = UDim2.new(0, 0, 0, UpdatesList.AbsoluteContentSize.Y + 10)
 UpdatesList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
@@ -1191,6 +1382,11 @@ end)
 FeaturesFrame.CanvasSize = UDim2.new(0, 0, 0, FeaturesList.AbsoluteContentSize.Y + 10)
 FeaturesList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     FeaturesFrame.CanvasSize = UDim2.new(0, 0, 0, FeaturesList.AbsoluteContentSize.Y + 10)
+end)
+
+InfoFrame.CanvasSize = UDim2.new(0, 0, 0, InfoList.AbsoluteContentSize.Y + 10)
+InfoList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    InfoFrame.CanvasSize = UDim2.new(0, 0, 0, InfoList.AbsoluteContentSize.Y + 10)
 end)
 
 -- Keybinds
@@ -1276,6 +1472,20 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             DisableNoClip()
         end
     end
+    
+    if input.KeyCode == SavedSettings.Keybinds.AutoShot then
+        AutoShotEnabled = not AutoShotEnabled
+        local button = FeaturesFrame:FindFirstChild("AutoShotButton")
+        local mainText = button:FindFirstChild("MainText")
+        
+        if AutoShotEnabled then
+            mainText.Text = "Auto Shot [ON]"
+            EnableAutoShot()
+        else
+            mainText.Text = "Auto Shot [OFF]"
+            DisableAutoShot()
+        end
+    end
 end)
 
 -- Character Respawn Handler
@@ -1321,12 +1531,11 @@ LocalPlayer.CharacterAdded:Connect(function(char)
         end
     end
     
-    -- Reapply FOV
     workspace.CurrentCamera.FieldOfView = SavedSettings.FOV
 end)
 
 -- Start with Updates tab
 SwitchTab("UpdatesTab")
 
-print("✅ Leliks Rivals Script v1.1.3 loaded!")
+print("✅ Leliks Rivals Script v1.1.5 loaded!")
 print("🔑 Press Z to open GUI")
