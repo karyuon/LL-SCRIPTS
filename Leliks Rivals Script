@@ -1,6 +1,6 @@
--- Leliks Rivals Script v1.1.5
+-- Leliks Rivals Script v1.1.6
 -- Modern GUI for Roblox Rivals
--- Z key = Toggle GUI
+-- Z key = Toggle GUI, L key = Toggle Aimbot Rage
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -116,7 +116,7 @@ VersionLabel.BackgroundTransparency = 1
 VersionLabel.Position = UDim2.new(0, 10, 1, -30)
 VersionLabel.Size = UDim2.new(0, 70, 0, 20)
 VersionLabel.Font = Enum.Font.GothamBold
-VersionLabel.Text = "v1.1.5"
+VersionLabel.Text = "v1.1.6"
 VersionLabel.TextColor3 = Color3.fromRGB(100, 100, 100)
 VersionLabel.TextSize = 14
 VersionLabel.TextTransparency = 0.3
@@ -503,20 +503,19 @@ local function CreateInfoText(text, order, isBold, isLarge)
     return Label
 end
 
-CreateUpdateText("🆕 LATEST UPDATES (v1.1.5 - BIG UPDATE!):\n\n• NEW: Auto Shot keybind (default U key)\n• NEW: ESP Skeleton - See enemy bone structure\n• NEW: ESP Health Bar - Green health bar above names\n• FIXED: Silent Aim now rotates character properly (not just camera)\n• IMPROVED: Features reordered - most important at top\n• NEW: Info tab with script credits\n• Better visual clarity and performance", 1)
+CreateUpdateText("🆕 LATEST UPDATES (v1.1.6):\n\n• IMPROVED: ESP skeleton now GREEN color\n• NEW: Aimbots system - Choose between Normal and Rage\n• Aimbot Normal - Aims at enemy body (camera + character)\n• Aimbot Rage - Aims at enemy head (camera + character)\n• NEW: Third Person View - Switch camera perspective\n• Press L to toggle Aimbot Rage directly\n• Jump Power increased for higher jumps\n• Better UI design and performance", 1)
 
 CreateInfoText("SCRIPT CREATOR: LELIKS", 1, true, true)
 CreateInfoText("Discord: LeliksW", 2, false, false)
-CreateInfoText("\n📋 GENERAL INFORMATION:\n\n• This script is designed for Roblox Rivals\n• All features work in 1v1 and team matches\n• Keybinds are customizable and save automatically\n• Press Z to toggle GUI visibility\n• Features persist across rounds and respawns\n• Blue border indicates active GUI\n• Settings save to file automatically\n\n⚠️ USE RESPONSIBLY:\n\n• This is a cheat/exploit script\n• May result in game bans\n• Use at your own risk\n• Recommended for private servers or testing\n\n🔥 BEST FEATURES:\n\n• ESP with skeleton and health bars\n• Silent Aim with character rotation\n• Auto Shot with wall detection\n• Customizable keybinds for all major features\n• FOV changer (20-150)\n• Fly and NoClip for movement", 3, false, false)
+CreateInfoText("\n📋 GENERAL INFORMATION:\n\n• This script is designed for Roblox Rivals\n• All features work in 1v1 and team matches\n• Keybinds are customizable and save automatically\n• Press Z to toggle GUI visibility\n• Features persist across rounds and respawns\n• Blue border indicates active GUI\n• Settings save to file automatically\n\n⚠️ USE RESPONSIBLY:\n\n• This is a cheat/exploit script\n• May result in game bans\n• Use at your own risk\n• Recommended for private servers or testing\n\n🔥 BEST FEATURES:\n\n• ESP with green skeleton and health bars\n• Aimbots - Normal (body) and Rage (head)\n• Auto Shot with wall detection\n• Third Person View\n• Jump Power for higher jumps\n• Customizable keybinds\n• FOV changer (20-150)", 3, false, false)
 
 -- Variables
 local ESPEnabled = false
 local ESPConnections = {}
-local ESPSkeletonLines = {}
-local AimbotEnabled = false
+local AimbotsExpanded = false
+local AimbotNormalEnabled = false
+local AimbotRageEnabled = false
 local AimbotConnection = nil
-local SilentAimEnabled = false
-local SilentAimConnection = nil
 local AutoShotEnabled = false
 local AutoShotConnection = nil
 local lastShotTime = 0
@@ -535,6 +534,9 @@ local NoClipConnection = nil
 local XRayEnabled = false
 local XRayParts = {}
 local FOVConnection = nil
+local JumpPowerEnabled = false
+local JumpPowerConnection = nil
+local ThirdPersonEnabled = false
 
 -- Team Check Function
 local function IsEnemy(player)
@@ -597,7 +599,7 @@ local skeletonJoints = {
     {"RightLowerLeg", "RightFoot"}
 }
 
--- ESP WITH SKELETON AND HEALTH BAR
+-- ESP WITH GREEN SKELETON AND HEALTH BAR
 local function CreateESPForCharacter(player, character)
     if player == LocalPlayer then return end
     if not character then return end
@@ -625,7 +627,7 @@ local function CreateESPForCharacter(player, character)
     highlight.OutlineTransparency = 0
     highlight.Parent = character
     
-    -- Skeleton
+    -- GREEN Skeleton
     local skeletonFolder = Instance.new("Folder")
     skeletonFolder.Name = "ESPSkeleton"
     skeletonFolder.Parent = character
@@ -644,7 +646,7 @@ local function CreateESPForCharacter(player, character)
             
             line.Attachment0 = att0
             line.Attachment1 = att1
-            line.Color = ColorSequence.new(IsEnemy(player) and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(0, 255, 0))
+            line.Color = ColorSequence.new(Color3.fromRGB(0, 255, 0)) -- GREEN
             line.Width0 = 0.1
             line.Width1 = 0.1
             line.FaceCamera = true
@@ -806,28 +808,39 @@ local function GetClosestEnemy()
     return closestPlayer
 end
 
--- Aimbot Function (Camera aims at HEAD)
-local function EnableAimbot()
+-- AIMBOTS SYSTEM
+local function EnableAimbot(targetPart)
     if AimbotConnection then
         AimbotConnection:Disconnect()
     end
     
     AimbotConnection = RunService.RenderStepped:Connect(function()
-        if not AimbotEnabled then return end
+        if not AimbotNormalEnabled and not AimbotRageEnabled then return end
         
         if not LocalPlayer.Character then return end
-        if not LocalPlayer.Character:FindFirstChild("Head") then return end
+        local humanoidRootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not humanoidRootPart then return end
         
         local target = GetClosestEnemy()
         
         if target and target.Character then
-            local targetHead = target.Character:FindFirstChild("Head")
+            local aimPart
+            if AimbotRageEnabled then
+                aimPart = target.Character:FindFirstChild("Head") -- Rage = Head
+            else
+                aimPart = target.Character:FindFirstChild("Torso") or target.Character:FindFirstChild("UpperTorso") -- Normal = Body
+            end
             
-            if targetHead then
+            if aimPart then
+                -- Rotate camera
                 local camera = workspace.CurrentCamera
                 if camera then
-                    camera.CFrame = CFrame.new(camera.CFrame.Position, targetHead.Position)
+                    camera.CFrame = CFrame.new(camera.CFrame.Position, aimPart.Position)
                 end
+                
+                -- Rotate character
+                local lookAtPos = Vector3.new(aimPart.Position.X, humanoidRootPart.Position.Y, aimPart.Position.Z)
+                humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position, lookAtPos)
             end
         end
     end)
@@ -840,75 +853,91 @@ local function DisableAimbot()
     end
 end
 
--- Aimbot Button
-CreateFeatureButton(FeaturesFrame, "AimbotButton", "Aimbot [OFF]", function()
-    AimbotEnabled = not AimbotEnabled
-    local button = FeaturesFrame:FindFirstChild("AimbotButton")
-    local mainText = button:FindFirstChild("MainText")
+-- Create Aimbots expandable button
+local AimbotsButton = CreateFeatureButton(FeaturesFrame, "AimbotsButton", "Aimbots", function()
+    AimbotsExpanded = not AimbotsExpanded
     
-    if AimbotEnabled then
-        mainText.Text = "Aimbot [ON]"
-        EnableAimbot()
+    local normalButton = FeaturesFrame:FindFirstChild("AimbotNormalButton")
+    local rageButton = FeaturesFrame:FindFirstChild("AimbotRageButton")
+    
+    if AimbotsExpanded then
+        if normalButton then normalButton.Visible = true end
+        if rageButton then rageButton.Visible = true end
     else
-        mainText.Text = "Aimbot [OFF]"
+        if normalButton then normalButton.Visible = false end
+        if rageButton then rageButton.Visible = false end
+    end
+end, true, nil)
+AimbotsButton.LayoutOrder = 2
+
+-- Create sub-buttons for Aimbots (FULL WIDTH, NO BORDERS, LEFT ALIGNED)
+local AimbotNormalButton = Instance.new("TextButton")
+
+AimbotNormalButton.Name = "AimbotNormalButton"
+AimbotNormalButton.Parent = FeaturesFrame
+AimbotNormalButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+AimbotNormalButton.Size = UDim2.new(1, 0, 0, 45)
+AimbotNormalButton.Font = Enum.Font.GothamBold
+AimbotNormalButton.Text = "  Aimbot Normal [OFF]"
+AimbotNormalButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+AimbotNormalButton.TextSize = 16
+AimbotNormalButton.TextXAlignment = Enum.TextXAlignment.Left
+AimbotNormalButton.AutoButtonColor = false
+AimbotNormalButton.BorderSizePixel = 0
+AimbotNormalButton.Visible = false
+AimbotNormalButton.LayoutOrder = 3
+
+AimbotNormalButton.MouseButton1Click:Connect(function()
+    AimbotNormalEnabled = not AimbotNormalEnabled
+    AimbotRageEnabled = false
+    
+    AimbotNormalButton.Text = AimbotNormalEnabled and "  Aimbot Normal [ON]" or "  Aimbot Normal [OFF]"
+    
+    local rageBtn = FeaturesFrame:FindFirstChild("AimbotRageButton")
+    if rageBtn then
+        rageBtn.Text = "  Aimbot Rage [OFF]"
+    end
+    
+    if AimbotNormalEnabled then
+        EnableAimbot("Body")
+    else
         DisableAimbot()
     end
-end, true, "Recommended for 1v1 matches").LayoutOrder = 2
+end)
 
--- FIXED Silent Aim (Camera + Character rotation)
-local function EnableSilentAim()
-    if SilentAimConnection then
-        SilentAimConnection:Disconnect()
+local AimbotRageButton = Instance.new("TextButton")
+
+AimbotRageButton.Name = "AimbotRageButton"
+AimbotRageButton.Parent = FeaturesFrame
+AimbotRageButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+AimbotRageButton.Size = UDim2.new(1, 0, 0, 45)
+AimbotRageButton.Font = Enum.Font.GothamBold
+AimbotRageButton.Text = "  Aimbot Rage [OFF]"
+AimbotRageButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+AimbotRageButton.TextSize = 16
+AimbotRageButton.TextXAlignment = Enum.TextXAlignment.Left
+AimbotRageButton.AutoButtonColor = false
+AimbotRageButton.BorderSizePixel = 0
+AimbotRageButton.Visible = false
+AimbotRageButton.LayoutOrder = 4
+
+AimbotRageButton.MouseButton1Click:Connect(function()
+    AimbotRageEnabled = not AimbotRageEnabled
+    AimbotNormalEnabled = false
+    
+    AimbotRageButton.Text = AimbotRageEnabled and "  Aimbot Rage [ON]" or "  Aimbot Rage [OFF]"
+    
+    local normalBtn = FeaturesFrame:FindFirstChild("AimbotNormalButton")
+    if normalBtn then
+        normalBtn.Text = "  Aimbot Normal [OFF]"
     end
     
-    SilentAimConnection = RunService.RenderStepped:Connect(function()
-        if not SilentAimEnabled then return end
-        
-        if not LocalPlayer.Character then return end
-        local humanoidRootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if not humanoidRootPart then return end
-        
-        local target = GetClosestEnemy()
-        
-        if target and target.Character then
-            local targetTorso = target.Character:FindFirstChild("Torso") or target.Character:FindFirstChild("UpperTorso")
-            
-            if targetTorso then
-                -- Rotate camera
-                local camera = workspace.CurrentCamera
-                if camera then
-                    camera.CFrame = CFrame.new(camera.CFrame.Position, targetTorso.Position)
-                end
-                
-                -- Rotate character
-                local lookAtPos = Vector3.new(targetTorso.Position.X, humanoidRootPart.Position.Y, targetTorso.Position.Z)
-                humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position, lookAtPos)
-            end
-        end
-    end)
-end
-
-local function DisableSilentAim()
-    if SilentAimConnection then
-        SilentAimConnection:Disconnect()
-        SilentAimConnection = nil
-    end
-end
-
--- Silent Aim Button
-CreateFeatureButton(FeaturesFrame, "SilentAimButton", "Silent Aim [OFF]", function()
-    SilentAimEnabled = not SilentAimEnabled
-    local button = FeaturesFrame:FindFirstChild("SilentAimButton")
-    local mainText = button:FindFirstChild("MainText")
-    
-    if SilentAimEnabled then
-        mainText.Text = "Silent Aim [ON]"
-        EnableSilentAim()
+    if AimbotRageEnabled then
+        EnableAimbot("Head")
     else
-        mainText.Text = "Silent Aim [OFF]"
-        DisableSilentAim()
+        DisableAimbot()
     end
-end, false, "Recommended for 1v1 matches").LayoutOrder = 3
+end)
 
 -- AUTO SHOT WITH WALL DETECTION + KEYBIND
 local function EnableAutoShot()
@@ -921,7 +950,7 @@ local function EnableAutoShot()
     AutoShotConnection = RunService.Heartbeat:Connect(function()
         if not AutoShotEnabled then return end
         
-        if not AimbotEnabled and not SilentAimEnabled then return end
+        if not AimbotNormalEnabled and not AimbotRageEnabled then return end
         
         if IsWallInFront() then return end
         
@@ -965,7 +994,46 @@ CreateFeatureButton(FeaturesFrame, "AutoShotButton", "Auto Shot [OFF]", function
         mainText.Text = "Auto Shot [OFF]"
         DisableAutoShot()
     end
-end, true, "Recommended for 1v1 matches").LayoutOrder = 4
+end, true, "Recommended for 1v1 matches").LayoutOrder = 5
+
+-- JUMP POWER
+local function EnableJumpPower()
+    if JumpPowerConnection then
+        JumpPowerConnection:Disconnect()
+    end
+    
+    JumpPowerConnection = RunService.Heartbeat:Connect(function()
+        if not JumpPowerEnabled then return end
+        
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid.JumpPower = 100
+        end
+    end)
+end
+
+local function DisableJumpPower()
+    if JumpPowerConnection then
+        JumpPowerConnection:Disconnect()
+        JumpPowerConnection = nil
+    end
+    
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.JumpPower = 50
+    end
+end
+
+CreateFeatureButton(FeaturesFrame, "JumpPowerButton", "Jump Power [OFF]", function()
+    JumpPowerEnabled = not JumpPowerEnabled
+    local button = FeaturesFrame:FindFirstChild("JumpPowerButton")
+    local mainText = button:FindFirstChild("MainText")
+    mainText.Text = JumpPowerEnabled and "Jump Power [ON]" or "Jump Power [OFF]"
+    
+    if JumpPowerEnabled then
+        EnableJumpPower()
+    else
+        DisableJumpPower()
+    end
+end, false, nil).LayoutOrder = 6
 
 -- Speed Boost
 local function EnableSpeed()
@@ -1005,7 +1073,7 @@ CreateFeatureButton(FeaturesFrame, "SpeedButton", "Speed Boost [OFF]", function(
         mainText.Text = "Speed Boost [OFF]"
         DisableSpeed()
     end
-end, false, nil).LayoutOrder = 5
+end, false, nil).LayoutOrder = 7
 
 -- FLY
 local function EnableFly()
@@ -1099,7 +1167,7 @@ CreateFeatureButton(FeaturesFrame, "FlyButton", "Fly [OFF]", function()
     else
         DisableFly()
     end
-end, true, nil).LayoutOrder = 6
+end, true, nil).LayoutOrder = 8
 
 -- NoClip
 local function EnableNoClip()
@@ -1146,7 +1214,7 @@ CreateFeatureButton(FeaturesFrame, "NoClipButton", "NoClip [OFF]", function()
     else
         DisableNoClip()
     end
-end, true, nil).LayoutOrder = 7
+end, true, nil).LayoutOrder = 9
 
 -- Infinite Jump
 CreateFeatureButton(FeaturesFrame, "JumpButton", "Infinite Jump [OFF]", function()
@@ -1166,7 +1234,7 @@ CreateFeatureButton(FeaturesFrame, "JumpButton", "Infinite Jump [OFF]", function
             JumpConnection:Disconnect()
         end
     end
-end, false, nil).LayoutOrder = 8
+end, false, nil).LayoutOrder = 10
 
 -- XRay
 local function EnableXRay()
@@ -1205,7 +1273,7 @@ CreateFeatureButton(FeaturesFrame, "XRayButton", "XRay [OFF]", function()
     else
         DisableXRay()
     end
-end, false, nil).LayoutOrder = 9
+end, false, nil).LayoutOrder = 11
 
 -- No Recoil
 CreateFeatureButton(FeaturesFrame, "RecoilButton", "No Recoil [OFF]", function()
@@ -1213,7 +1281,7 @@ CreateFeatureButton(FeaturesFrame, "RecoilButton", "No Recoil [OFF]", function()
     local button = FeaturesFrame:FindFirstChild("RecoilButton")
     local mainText = button:FindFirstChild("MainText")
     mainText.Text = NoRecoilEnabled and "No Recoil [ON]" or "No Recoil [OFF]"
-end, false, nil).LayoutOrder = 10
+end, false, nil).LayoutOrder = 12
 
 -- Wallhack
 CreateFeatureButton(FeaturesFrame, "WallhackButton", "Wallhack [OFF]", function()
@@ -1227,14 +1295,14 @@ CreateFeatureButton(FeaturesFrame, "WallhackButton", "Wallhack [OFF]", function(
             part.Transparency = WallhackEnabled and 0.7 or 0
         end
     end
-end, false, nil).LayoutOrder = 11
+end, false, nil).LayoutOrder = 13
 
 -- Instant Respawn
 CreateFeatureButton(FeaturesFrame, "RespawnButton", "Instant Respawn", function()
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
         LocalPlayer.Character.Humanoid.Health = 0
     end
-end, false, nil).LayoutOrder = 12
+end, false, nil).LayoutOrder = 14
 
 -- Teleport to Enemy
 CreateFeatureButton(FeaturesFrame, "TeleportButton", "Teleport to Enemy", function()
@@ -1246,7 +1314,7 @@ CreateFeatureButton(FeaturesFrame, "TeleportButton", "Teleport to Enemy", functi
             end
         end
     end
-end, false, nil).LayoutOrder = 13
+end, false, nil).LayoutOrder = 15
 
 -- Anti-Kick
 CreateFeatureButton(FeaturesFrame, "AntiKickButton", "Anti-Kick [OFF]", function()
@@ -1270,7 +1338,27 @@ CreateFeatureButton(FeaturesFrame, "AntiKickButton", "Anti-Kick [OFF]", function
             setreadonly(mt, true)
         end)
     end
-end, false, nil).LayoutOrder = 14
+end, false, nil).LayoutOrder = 16
+
+-- THIRD PERSON VIEW (FIXED)
+CreateFeatureButton(FeaturesFrame, "ThirdPersonButton", "Third Person View [OFF]", function()
+    ThirdPersonEnabled = not ThirdPersonEnabled
+    local button = FeaturesFrame:FindFirstChild("ThirdPersonButton")
+    local mainText = button:FindFirstChild("MainText")
+    mainText.Text = ThirdPersonEnabled and "Third Person View [ON]" or "Third Person View [OFF]"
+    
+    if ThirdPersonEnabled then
+        -- Enable third person
+        LocalPlayer.CameraMode = Enum.CameraMode.Classic
+        LocalPlayer.CameraMaxZoomDistance = 50
+        LocalPlayer.CameraMinZoomDistance = 10
+    else
+        -- Disable third person (back to first person)
+        LocalPlayer.CameraMode = Enum.CameraMode.LockFirstPerson
+        LocalPlayer.CameraMaxZoomDistance = 0.5
+        LocalPlayer.CameraMinZoomDistance = 0.5
+    end
+end, false, nil).LayoutOrder = 998
 
 -- FOV CHANGER (LAST!)
 local function CreateFOVSlider()
@@ -1397,16 +1485,24 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         MainFrame.Visible = not MainFrame.Visible
     end
     
+    -- L key = Toggle Aimbot Rage directly
     if input.KeyCode == SavedSettings.Keybinds.Aimbot then
-        AimbotEnabled = not AimbotEnabled
-        local button = FeaturesFrame:FindFirstChild("AimbotButton")
-        local mainText = button:FindFirstChild("MainText")
+        AimbotRageEnabled = not AimbotRageEnabled
+        AimbotNormalEnabled = false
         
-        if AimbotEnabled then
-            mainText.Text = "Aimbot [ON]"
-            EnableAimbot()
+        local rageBtn = FeaturesFrame:FindFirstChild("AimbotRageButton")
+        local normalBtn = FeaturesFrame:FindFirstChild("AimbotNormalButton")
+        
+        if rageBtn then
+            rageBtn.Text = AimbotRageEnabled and "  Aimbot Rage [ON]" or "  Aimbot Rage [OFF]"
+        end
+        if normalBtn then
+            normalBtn.Text = "  Aimbot Normal [OFF]"
+        end
+        
+        if AimbotRageEnabled then
+            EnableAimbot("Head")
         else
-            mainText.Text = "Aimbot [OFF]"
             DisableAimbot()
         end
     end
@@ -1497,19 +1593,23 @@ LocalPlayer.CharacterAdded:Connect(function(char)
         EnableSpeed()
     end
     
+    if JumpPowerEnabled then
+        task.wait(0.5)
+        EnableJumpPower()
+    end
+    
     if FlyEnabled then
         task.wait(1)
         EnableFly()
     end
     
-    if AimbotEnabled then
+    if AimbotNormalEnabled or AimbotRageEnabled then
         task.wait(0.5)
-        EnableAimbot()
-    end
-    
-    if SilentAimEnabled then
-        task.wait(0.5)
-        EnableSilentAim()
+        if AimbotRageEnabled then
+            EnableAimbot("Head")
+        else
+            EnableAimbot("Body")
+        end
     end
     
     if AutoShotEnabled then
@@ -1531,11 +1631,17 @@ LocalPlayer.CharacterAdded:Connect(function(char)
         end
     end
     
+    if ThirdPersonEnabled then
+        LocalPlayer.CameraMode = Enum.CameraMode.Classic
+        LocalPlayer.CameraMaxZoomDistance = 50
+        LocalPlayer.CameraMinZoomDistance = 10
+    end
+    
     workspace.CurrentCamera.FieldOfView = SavedSettings.FOV
 end)
 
 -- Start with Updates tab
 SwitchTab("UpdatesTab")
 
-print("✅ Leliks Rivals Script v1.1.5 loaded!")
-print("🔑 Press Z to open GUI")
+print("✅ Leliks Rivals Script v1.1.6 loaded!")
+print("🔑 Press Z to open GUI | Press L for Aimbot Rage")
