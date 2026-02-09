@@ -1,6 +1,4 @@
 -- Leliks Rivals Script v1.1.6
--- Modern GUI for Roblox Rivals
--- Z key = Toggle GUI, L key = Toggle Aimbot Rage
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
